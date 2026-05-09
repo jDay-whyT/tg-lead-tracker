@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from datetime import datetime, timezone
 
 import google.auth
@@ -7,15 +8,33 @@ from googleapiclient.discovery import build
 
 import config
 
+logger = logging.getLogger(__name__)
+
 _SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
 _creds, _ = google.auth.default(scopes=_SCOPES)
 _service = build("sheets", "v4", credentials=_creds)
 
 
-def _append_row_sync(row: list) -> None:
+def _read_header() -> list[str]:
+    result = _service.spreadsheets().values().get(
+        spreadsheetId=config.GOOGLE_SHEETS_ID,
+        range="Leads!1:1",
+    ).execute()
+    rows = result.get("values", [])
+    header = rows[0] if rows else []
+    if not header:
+        logger.warning("Leads sheet has no header row — writes will be empty")
+    return header
+
+
+_header = _read_header()
+
+
+def _append_row_sync(data: dict) -> None:
     if _creds.expired and hasattr(_creds, "refresh"):
         _creds.refresh(google.auth.transport.requests.Request())
+    row = [data.get(col, "") for col in _header]
     _service.spreadsheets().values().append(
         spreadsheetId=config.GOOGLE_SHEETS_ID,
         range="Leads!A:G",
@@ -27,13 +46,15 @@ def _append_row_sync(row: list) -> None:
 
 async def append_lead(manager_username: str, lead_user, message_text: str) -> None:
     now = datetime.now(timezone.utc)
-    row = [
-        now.strftime("%Y-%m-%d"),
-        now.strftime("%H:%M:%S"),
-        manager_username or "",
-        getattr(lead_user, "username", "") or "",
-        f"{getattr(lead_user, 'first_name', '') or ''} {getattr(lead_user, 'last_name', '') or ''}".strip(),
-        str(lead_user.id),
-        (message_text or "")[:200],
-    ]
-    await asyncio.to_thread(_append_row_sync, row)
+    first = getattr(lead_user, "first_name", "") or ""
+    last = getattr(lead_user, "last_name", "") or ""
+    data = {
+        "DATE": now.strftime("%Y-%m-%d"),
+        "TIME": now.strftime("%H:%M:%S"),
+        "HR": manager_username or "",
+        "@user": getattr(lead_user, "username", "") or "",
+        "NAME": f"{first} {last}".strip(),
+        "ID": str(lead_user.id),
+        "TEXT": (message_text or "")[:200],
+    }
+    await asyncio.to_thread(_append_row_sync, data)
