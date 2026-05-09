@@ -100,6 +100,7 @@ jobs:
           service: ${{ steps.prep.outputs.service }}
           region: ${{ steps.prep.outputs.region }}
           image: ${{ steps.prep.outputs.image_uri }}
+          flags: --allow-unauthenticated
           env_vars: |-
             BOT_TOKEN=${{ secrets.BOT_TOKEN }}
             ADMIN_CHAT_ID=${{ secrets.ADMIN_CHAT_ID }}
