@@ -52,6 +52,10 @@ async def on_business_message(update: Update, context: ContextTypes.DEFAULT_TYPE
     if msg.from_user is None or msg.from_user.id == manager["user_id"]:
         return
 
+    if await db.lead_exists(connection_id, msg.from_user.id):
+        logger.debug("Duplicate lead skipped: lead_id=%s", msg.from_user.id)
+        return
+
     text = msg.text or msg.caption or ""
     try:
         await sheets.append_lead(
@@ -59,6 +63,7 @@ async def on_business_message(update: Update, context: ContextTypes.DEFAULT_TYPE
             lead_user=msg.from_user,
             message_text=text,
         )
+        await db.mark_lead_seen(connection_id, msg.from_user.id)
         logger.info(
             "Lead logged: manager=@%s lead_id=%s",
             manager.get("username"),
