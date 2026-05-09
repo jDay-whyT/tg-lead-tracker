@@ -1,4 +1,5 @@
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, Response
@@ -63,3 +64,10 @@ async def webhook(request: Request) -> Response:
 @app.get("/health")
 async def health() -> dict:
     return {"status": "ok"}
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    port = int(os.environ.get("PORT", 8080))
+    uvicorn.run(app, host="0.0.0.0", port=port)
