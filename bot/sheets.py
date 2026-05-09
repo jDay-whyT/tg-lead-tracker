@@ -1,7 +1,7 @@
 import asyncio
 from datetime import datetime, timezone
 
-from google.oauth2 import service_account
+import google.auth
 from googleapiclient.discovery import build
 
 import config
@@ -10,9 +10,7 @@ _SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
 
 def _append_row_sync(row: list) -> None:
-    creds = service_account.Credentials.from_service_account_file(
-        config.GOOGLE_CREDENTIALS_PATH, scopes=_SCOPES
-    )
+    creds, _ = google.auth.default(scopes=_SCOPES)
     service = build("sheets", "v4", credentials=creds)
     service.spreadsheets().values().append(
         spreadsheetId=config.GOOGLE_SHEETS_ID,

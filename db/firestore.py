@@ -1,9 +1,7 @@
 import config
 from google.cloud import firestore
-from google.oauth2 import service_account
 
-_creds = service_account.Credentials.from_service_account_file(config.GOOGLE_CREDENTIALS_PATH)
-_db = firestore.AsyncClient(project=config.FIRESTORE_PROJECT_ID, credentials=_creds)
+_db = firestore.AsyncClient(project=config.FIRESTORE_PROJECT_ID)
 
 MANAGERS = "managers"
 
