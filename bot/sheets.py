@@ -2,17 +2,21 @@ import asyncio
 from datetime import datetime, timezone
 
 import google.auth
+import google.auth.transport.requests
 from googleapiclient.discovery import build
 
 import config
 
 _SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
+_creds, _ = google.auth.default(scopes=_SCOPES)
+_service = build("sheets", "v4", credentials=_creds)
+
 
 def _append_row_sync(row: list) -> None:
-    creds, _ = google.auth.default(scopes=_SCOPES)
-    service = build("sheets", "v4", credentials=creds)
-    service.spreadsheets().values().append(
+    if _creds.expired and hasattr(_creds, "refresh"):
+        _creds.refresh(google.auth.transport.requests.Request())
+    _service.spreadsheets().values().append(
         spreadsheetId=config.GOOGLE_SHEETS_ID,
         range="Leads!A:G",
         valueInputOption="RAW",

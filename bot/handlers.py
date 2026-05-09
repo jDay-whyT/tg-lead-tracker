@@ -53,16 +53,23 @@ async def on_business_message(update: Update, context: ContextTypes.DEFAULT_TYPE
         return
 
     text = msg.text or msg.caption or ""
-    await sheets.append_lead(
-        manager_username=manager.get("username", ""),
-        lead_user=msg.from_user,
-        message_text=text,
-    )
-    logger.info(
-        "Lead logged: manager=@%s lead_id=%s",
-        manager.get("username"),
-        msg.from_user.id,
-    )
+    try:
+        await sheets.append_lead(
+            manager_username=manager.get("username", ""),
+            lead_user=msg.from_user,
+            message_text=text,
+        )
+        logger.info(
+            "Lead logged: manager=@%s lead_id=%s",
+            manager.get("username"),
+            msg.from_user.id,
+        )
+    except Exception:
+        logger.exception(
+            "Sheets write failed: manager=@%s lead_id=%s",
+            manager.get("username"),
+            msg.from_user.id,
+        )
 
 
 async def on_callback_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
