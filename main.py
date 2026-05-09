@@ -7,9 +7,9 @@ from telegram import Update
 from telegram.ext import (
     Application,
     BusinessConnectionHandler,
-    BusinessMessageHandler,
     CallbackQueryHandler,
     CommandHandler,
+    MessageHandler,
     filters,
 )
 
@@ -32,7 +32,7 @@ async def lifespan(app: FastAPI):
     global _ptb
     _ptb = Application.builder().token(config.BOT_TOKEN).build()
     _ptb.add_handler(BusinessConnectionHandler(on_business_connection))
-    _ptb.add_handler(BusinessMessageHandler(filters.ALL, on_business_message))
+    _ptb.add_handler(MessageHandler(filters.UpdateType.BUSINESS_MESSAGE, on_business_message))
     _ptb.add_handler(CallbackQueryHandler(on_callback_query))
     _ptb.add_handler(CommandHandler("managers", cmd_managers))
 
