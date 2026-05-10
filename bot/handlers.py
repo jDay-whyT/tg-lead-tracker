@@ -79,7 +79,23 @@ async def on_business_message(update: Update, context: ContextTypes.DEFAULT_TYPE
     if not manager or manager.get("status") != "approved":
         return
 
-    if msg.from_user is None or msg.from_user.id == manager["user_id"]:
+    if msg.from_user is None:
+        return
+
+    is_outgoing = msg.from_user.id == manager["user_id"]
+
+    if is_outgoing:
+        lead_user_id = msg.chat.id
+        lead = await db.get_lead(connection_id, lead_user_id)
+        if lead and not lead.get("replied") and lead.get("row_number"):
+            now = datetime.now(timezone.utc)
+            dt = now.strftime("%d.%m.%y %H:%M")
+            try:
+                await sheets.update_date_svyazi(lead["row_number"], dt)
+                await db.mark_lead_replied(connection_id, lead_user_id)
+                logger.info("Дата связи updated: lead_id=%s row=%s", lead_user_id, lead["row_number"])
+            except Exception:
+                logger.exception("Failed to update Дата связи: lead_id=%s", lead_user_id)
         return
 
     if await db.lead_exists(connection_id, msg.from_user.id):
@@ -88,16 +104,17 @@ async def on_business_message(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     text = msg.text or msg.caption or ""
     try:
-        await sheets.append_lead(
+        row_number = await sheets.append_lead(
             crm_name=manager.get("crm_name", ""),
             lead_user=msg.from_user,
             message_text=text,
         )
-        await db.mark_lead_seen(connection_id, msg.from_user.id)
+        await db.mark_lead_seen(connection_id, msg.from_user.id, row_number)
         logger.info(
-            "Lead logged: manager=@%s lead_id=%s",
+            "Lead logged: manager=@%s lead_id=%s row=%s",
             manager.get("username"),
             msg.from_user.id,
+            row_number,
         )
     except Exception:
         logger.exception(

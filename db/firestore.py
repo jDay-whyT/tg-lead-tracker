@@ -51,9 +51,25 @@ async def lead_exists(connection_id: str, lead_user_id: int) -> bool:
     return doc.exists
 
 
-async def mark_lead_seen(connection_id: str, lead_user_id: int) -> None:
+async def get_lead(connection_id: str, lead_user_id: int) -> dict | None:
     doc_id = f"{connection_id}_{lead_user_id}"
-    await _db.collection(LEADS).document(doc_id).set({"connection_id": connection_id, "lead_user_id": lead_user_id})
+    doc = await _db.collection(LEADS).document(doc_id).get()
+    return doc.to_dict() if doc.exists else None
+
+
+async def mark_lead_seen(connection_id: str, lead_user_id: int, row_number: int) -> None:
+    doc_id = f"{connection_id}_{lead_user_id}"
+    await _db.collection(LEADS).document(doc_id).set({
+        "connection_id": connection_id,
+        "lead_user_id": lead_user_id,
+        "row_number": row_number,
+        "replied": False,
+    })
+
+
+async def mark_lead_replied(connection_id: str, lead_user_id: int) -> None:
+    doc_id = f"{connection_id}_{lead_user_id}"
+    await _db.collection(LEADS).document(doc_id).update({"replied": True})
 
 
 async def list_managers() -> list[dict]:
