@@ -80,7 +80,7 @@ Fill in `.env`:
 | Variable | Description |
 |---|---|
 | `BOT_TOKEN` | Telegram bot token from @BotFather |
-| `ADMIN_CHAT_ID` | Your Telegram user ID (receives approval requests) |
+| `ADMIN_CHAT_ID` | Comma-separated Telegram user IDs — `123,456` — receive approval requests and alerts |
 | `GOOGLE_SHEETS_ID` | ID from the spreadsheet URL |
 | `FIRESTORE_PROJECT_ID` | GCP project ID |
 | `WEBHOOK_SECRET` | Optional — validated via `X-Telegram-Bot-Api-Secret-Token` header |
@@ -104,10 +104,11 @@ Required GitHub secrets:
 | `CLOUD_RUN_SERVICE` | Cloud Run service name |
 | `GOOGLE_SERVICE_ACCOUNT` | Service account JSON (CI deploy auth only) |
 | `BOT_TOKEN` | |
-| `ADMIN_CHAT_ID` | |
 | `GOOGLE_SHEETS_ID` | |
 | `FIRESTORE_PROJECT_ID` | |
 | `WEBHOOK_SECRET` | |
+
+`ADMIN_CHAT_ID` is **not** in deploy.yml — set it directly in Cloud Run environment variables (supports multiple IDs: `123,456`).
 
 After deploy, register the webhook:
 
@@ -115,14 +116,23 @@ After deploy, register the webhook:
 https://api.telegram.org/bot{TOKEN}/setWebhook?url={CLOUD_RUN_URL}/webhook&secret_token={WEBHOOK_SECRET}
 ```
 
-## Admin commands
+## Commands
+
+### Admin only
 
 | Command | Description |
 |---|---|
 | `/managers` | List all managers with status and connection date |
 | `/delete @username` | Remove a manager from Firestore |
+| `/help` | List all commands |
 
-Admin-only — commands from other users are silently ignored.
+Silently ignored for non-admins.
+
+### Manager only
+
+| Command | Description |
+|---|---|
+| `/reset` | Reset CRM nickname — bot prompts for a new one, re-triggers approval |
 
 ## Firestore collections
 
