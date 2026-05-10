@@ -54,29 +54,52 @@ def init_header() -> None:
     )
 
 
-def _append_row_sync(data: dict) -> int:
+def _refresh_creds() -> None:
     if _creds.expired and hasattr(_creds, "refresh"):
         _creds.refresh(google.auth.transport.requests.Request())
-    row = [data.get(col, "") for col in _header]
-    logger.info("Writing row — header: %s | data keys: %s | row: %s", _header, list(data.keys()), row)
+
+
+def _append_row_sync(data: dict) -> int:
+    _refresh_creds()
     result = _service.spreadsheets().values().append(
         spreadsheetId=config.GOOGLE_SHEETS_ID,
-        range=f"{_SHEET}!A:Z",
+        range=f"{_SHEET}!A1",
         valueInputOption="RAW",
         insertDataOption="INSERT_ROWS",
-        body={"values": [row]},
+        body={"values": [[""]]},
     ).execute()
     updated_range = result.get("updates", {}).get("updatedRange", "")
     match = re.search(r"(\d+)$", updated_range)
-    return int(match.group(1)) if match else 0
+    row_number = int(match.group(1)) if match else 0
+
+    if not row_number:
+        logger.error("Could not parse row number from: %s", updated_range)
+        return 0
+
+    batch_data = []
+    for col_name, value in data.items():
+        if col_name in _header:
+            col_letter = _col_letter(_header.index(col_name) + 1)
+            batch_data.append({
+                "range": f"{_SHEET}!{col_letter}{row_number}",
+                "values": [[value]],
+            })
+
+    if batch_data:
+        logger.info("Writing row %s: %s", row_number, {k: v for k, v in data.items() if k in _header})
+        _service.spreadsheets().values().batchUpdate(
+            spreadsheetId=config.GOOGLE_SHEETS_ID,
+            body={"valueInputOption": "RAW", "data": batch_data},
+        ).execute()
+
+    return row_number
 
 
 def _update_date_svyazi_sync(row_number: int, dt_str: str) -> None:
     if not _date_svyazi_col:
         logger.warning("Дата связи column not found in header — skipping update")
         return
-    if _creds.expired and hasattr(_creds, "refresh"):
-        _creds.refresh(google.auth.transport.requests.Request())
+    _refresh_creds()
     _service.spreadsheets().values().update(
         spreadsheetId=config.GOOGLE_SHEETS_ID,
         range=f"{_SHEET}!{_date_svyazi_col}{row_number}",
