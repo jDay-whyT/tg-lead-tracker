@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -13,6 +14,7 @@ from telegram.ext import (
     filters,
 )
 
+import bot.sheets as _sheets
 import config
 from bot.handlers import (
     cmd_delete,
@@ -40,6 +42,7 @@ async def lifespan(app: FastAPI):
     _ptb.add_handler(CommandHandler("delete", cmd_delete))
     _ptb.add_handler(MessageHandler(filters.TEXT & filters.ChatType.PRIVATE & ~filters.COMMAND, on_regular_message))
 
+    await asyncio.to_thread(_sheets.init_header)
     await _ptb.initialize()
     await _ptb.start()
     logger.info("Bot started")

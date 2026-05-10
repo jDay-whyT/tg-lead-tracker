@@ -34,7 +34,8 @@ def _read_header() -> list[str]:
     return header
 
 
-_header = _read_header()
+_header: list[str] = []
+_date_svyazi_col: str = ""
 
 
 def _col_letter(n: int) -> str:
@@ -45,9 +46,12 @@ def _col_letter(n: int) -> str:
     return result
 
 
-_date_svyazi_col: str = (
-    _col_letter(_header.index("Дата связи") + 1) if "Дата связи" in _header else ""
-)
+def init_header() -> None:
+    global _header, _date_svyazi_col
+    _header = _read_header()
+    _date_svyazi_col = (
+        _col_letter(_header.index("Дата связи") + 1) if "Дата связи" in _header else ""
+    )
 
 
 def _append_row_sync(data: dict) -> int:
