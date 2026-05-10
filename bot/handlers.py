@@ -21,6 +21,11 @@ async def on_business_connection(update: Update, context: ContextTypes.DEFAULT_T
 
     if not bc.is_enabled:
         await db.update_manager_status(connection_id, "disconnected")
+        username = bc.user.username or bc.user.first_name or str(bc.user.id)
+        await context.bot.send_message(
+            chat_id=config.ADMIN_CHAT_ID,
+            text=f"Manager @{username} disconnected the bot ⚠️",
+        )
         return
 
     user = bc.user
