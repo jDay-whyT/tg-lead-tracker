@@ -40,7 +40,7 @@ async def on_business_connection(update: Update, context: ContextTypes.DEFAULT_T
     await db.save_manager(connection_id, manager_data)
     await context.bot.send_message(
         chat_id=user.id,
-        text="Привет! Введи свой CRM ник (например: Дима HR_2064)",
+        text="Привет! Введи свой CRM ник (например: User HR_2121)",
     )
     logger.info("Manager registered: user_id=%s connection_id=%s", user.id, connection_id)
 
@@ -142,8 +142,6 @@ async def on_callback_query(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     if query is None:
         return
 
-    await query.answer()
-
     data = query.data or ""
     if ":" not in data:
         return
@@ -154,9 +152,14 @@ async def on_callback_query(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
     manager = await db.get_manager(connection_id)
     if manager is None:
-        await query.edit_message_text("Manager not found.")
+        await query.answer("Manager not found.")
         return
 
+    if manager.get("status") in ("approved", "rejected"):
+        await query.answer("Уже обработано ✅")
+        return
+
+    await query.answer()
     status = "approved" if action == "approve" else "rejected"
     await db.update_manager_status(connection_id, status)
 
