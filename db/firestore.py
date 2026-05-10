@@ -1,5 +1,6 @@
 import config
 from google.cloud import firestore
+from google.cloud.firestore_v1 import FieldFilter
 
 _db = firestore.AsyncClient(project=config.FIRESTORE_PROJECT_ID)
 
@@ -18,6 +19,22 @@ async def get_manager(connection_id: str) -> dict | None:
 
 async def update_manager_status(connection_id: str, status: str) -> None:
     await _db.collection(MANAGERS).document(connection_id).update({"status": status})
+
+
+async def get_manager_by_user_id(user_id: int) -> tuple[str, dict] | None:
+    query = _db.collection(MANAGERS).where(filter=FieldFilter("user_id", "==", user_id)).limit(1)
+    async for doc in query.stream():
+        d = doc.to_dict()
+        d["connection_id"] = doc.id
+        return doc.id, d
+    return None
+
+
+async def update_manager_crm(connection_id: str, crm_name: str) -> None:
+    await _db.collection(MANAGERS).document(connection_id).update({
+        "crm_name": crm_name,
+        "status": "pending",
+    })
 
 
 async def lead_exists(connection_id: str, lead_user_id: int) -> bool:

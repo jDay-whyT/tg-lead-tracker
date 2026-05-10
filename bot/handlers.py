@@ -33,12 +33,36 @@ async def on_business_connection(update: Update, context: ContextTypes.DEFAULT_T
         "user_id": user.id,
         "username": user.username or "",
         "first_name": user.first_name or "",
-        "status": "pending",
+        "status": "awaiting_crm_name",
         "connected_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.save_manager(connection_id, manager_data)
-    await admin.notify_admin(context.bot, manager_data, connection_id)
+    await context.bot.send_message(
+        chat_id=user.id,
+        text="Привет! Введи свой CRM ник (например: Дима HR_2064)",
+    )
     logger.info("Manager registered: user_id=%s connection_id=%s", user.id, connection_id)
+
+
+async def on_regular_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    msg = update.message
+    if msg is None or msg.from_user is None or msg.text is None:
+        return
+
+    result = await db.get_manager_by_user_id(msg.from_user.id)
+    if result is None:
+        return
+
+    connection_id, manager = result
+    if manager.get("status") != "awaiting_crm_name":
+        return
+
+    crm_name = msg.text.strip()
+    await db.update_manager_crm(connection_id, crm_name)
+    manager["crm_name"] = crm_name
+    await admin.notify_admin(context.bot, manager, connection_id)
+    await msg.reply_text("Спасибо! Ваша заявка отправлена на рассмотрение.")
+    logger.info("CRM name set: user_id=%s crm_name=%s", msg.from_user.id, crm_name)
 
 
 async def on_business_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

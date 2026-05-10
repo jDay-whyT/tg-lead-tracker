@@ -19,6 +19,7 @@ from bot.handlers import (
     on_business_connection,
     on_business_message,
     on_callback_query,
+    on_regular_message,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -35,6 +36,7 @@ async def lifespan(app: FastAPI):
     _ptb.add_handler(MessageHandler(filters.UpdateType.BUSINESS_MESSAGE, on_business_message))
     _ptb.add_handler(CallbackQueryHandler(on_callback_query))
     _ptb.add_handler(CommandHandler("managers", cmd_managers))
+    _ptb.add_handler(MessageHandler(filters.TEXT & filters.ChatType.PRIVATE & ~filters.COMMAND, on_regular_message))
 
     await _ptb.initialize()
     await _ptb.start()
