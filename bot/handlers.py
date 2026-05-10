@@ -86,6 +86,14 @@ async def on_business_message(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     if is_outgoing:
         lead_user_id = msg.chat.id
+        logger.debug(
+            "Outgoing business_message: from_user.id=%s manager.user_id=%s chat.id=%s text=%r date=%s",
+            msg.from_user.id,
+            manager["user_id"],
+            msg.chat.id,
+            (msg.text or "")[:80],
+            msg.date,
+        )
         lead = await db.get_lead(connection_id, lead_user_id)
         if lead and not lead.get("replied") and lead.get("row_number"):
             now = datetime.now(timezone.utc)
