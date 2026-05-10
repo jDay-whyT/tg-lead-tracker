@@ -120,9 +120,14 @@ async def cmd_managers(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         await update.message.reply_text("No managers registered.")
         return
 
-    lines = [
-        f"@{m.get('username') or 'N/A'} | {m.get('first_name', '')} | "
-        f"status: {m.get('status')} | cid: {m.get('connection_id')}"
-        for m in managers
-    ]
+    _status_emoji = {"approved": "✅", "rejected": "❌", "pending": "⏳", "disconnected": "🔌"}
+
+    lines = []
+    for m in managers:
+        username = f"@{m.get('username')}" if m.get("username") else m.get("first_name") or "N/A"
+        status = m.get("status", "unknown")
+        emoji = _status_emoji.get(status, "❓")
+        connected_at = (m.get("connected_at") or "")[:10]
+        lines.append(f"{username} — {emoji} {status} — {connected_at}")
+
     await update.message.reply_text("\n".join(lines))
