@@ -29,6 +29,8 @@ def _read_header() -> list[str]:
     header = rows[0] if rows else []
     if not header:
         logger.warning("%s sheet has no header row — writes will be empty", _SHEET)
+    else:
+        logger.info("Header read from %s: %s", _SHEET, header)
     return header
 
 
@@ -52,6 +54,7 @@ def _append_row_sync(data: dict) -> int:
     if _creds.expired and hasattr(_creds, "refresh"):
         _creds.refresh(google.auth.transport.requests.Request())
     row = [data.get(col, "") for col in _header]
+    logger.info("Writing row — header: %s | data keys: %s | row: %s", _header, list(data.keys()), row)
     result = _service.spreadsheets().values().append(
         spreadsheetId=config.GOOGLE_SHEETS_ID,
         range=f"{_SHEET}!A:Z",
