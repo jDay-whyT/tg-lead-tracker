@@ -51,6 +51,7 @@ async def on_regular_message(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     result = await db.get_manager_by_user_id(msg.from_user.id)
     if result is None:
+        await msg.reply_text("Привет! Подключи бота через Настройки → Автоматизация чатов")
         return
 
     connection_id, manager = result
