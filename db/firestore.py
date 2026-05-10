@@ -21,6 +21,14 @@ async def update_manager_status(connection_id: str, status: str) -> None:
     await _db.collection(MANAGERS).document(connection_id).update({"status": status})
 
 
+async def delete_manager_by_username(username: str) -> bool:
+    query = _db.collection(MANAGERS).where(filter=FieldFilter("username", "==", username)).limit(1)
+    async for doc in query.stream():
+        await doc.reference.delete()
+        return True
+    return False
+
+
 async def get_manager_by_user_id(user_id: int) -> tuple[str, dict] | None:
     query = _db.collection(MANAGERS).where(filter=FieldFilter("user_id", "==", user_id)).limit(1)
     async for doc in query.stream():

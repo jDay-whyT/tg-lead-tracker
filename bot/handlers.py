@@ -140,6 +140,24 @@ async def on_callback_query(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         logger.warning("Could not notify manager %s: %s", manager["user_id"], e)
 
 
+async def cmd_delete(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if update.effective_user is None or update.effective_user.id != config.ADMIN_CHAT_ID:
+        return
+
+    args = context.args
+    if not args:
+        await update.message.reply_text("Usage: /delete @username")
+        return
+
+    username = args[0].lstrip("@")
+    deleted = await db.delete_manager_by_username(username)
+    if deleted:
+        await update.message.reply_text(f"Manager @{username} deleted ✅")
+        logger.info("Manager deleted: @%s", username)
+    else:
+        await update.message.reply_text(f"Manager @{username} not found ❌")
+
+
 async def cmd_managers(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.effective_user is None or update.effective_user.id != config.ADMIN_CHAT_ID:
         return

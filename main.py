@@ -15,6 +15,7 @@ from telegram.ext import (
 
 import config
 from bot.handlers import (
+    cmd_delete,
     cmd_managers,
     on_business_connection,
     on_business_message,
@@ -36,6 +37,7 @@ async def lifespan(app: FastAPI):
     _ptb.add_handler(MessageHandler(filters.UpdateType.BUSINESS_MESSAGE, on_business_message))
     _ptb.add_handler(CallbackQueryHandler(on_callback_query))
     _ptb.add_handler(CommandHandler("managers", cmd_managers))
+    _ptb.add_handler(CommandHandler("delete", cmd_delete))
     _ptb.add_handler(MessageHandler(filters.TEXT & filters.ChatType.PRIVATE & ~filters.COMMAND, on_regular_message))
 
     await _ptb.initialize()
