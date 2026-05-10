@@ -48,12 +48,14 @@ async def append_lead(manager_username: str, lead_user, message_text: str) -> No
     now = datetime.now(timezone.utc)
     first = getattr(lead_user, "first_name", "") or ""
     last = getattr(lead_user, "last_name", "") or ""
+    full_name = f"{first} {last}".strip()
+    username = getattr(lead_user, "username", "") or ""
     data = {
         "DATE": now.strftime("%Y-%m-%d"),
         "TIME": now.strftime("%H:%M:%S"),
         "HR": manager_username or "",
-        "@user": getattr(lead_user, "username", "") or "",
-        "NAME": f"{first} {last}".strip(),
+        "@user": f"@{username}" if username else full_name,
+        "NAME": full_name,
         "ID": str(lead_user.id),
         "TEXT": (message_text or "")[:200],
     }
