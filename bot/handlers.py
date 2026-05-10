@@ -85,25 +85,29 @@ async def on_business_message(update: Update, context: ContextTypes.DEFAULT_TYPE
     is_outgoing = msg.from_user.id == manager["user_id"]
 
     if is_outgoing:
+        if msg.text is None or msg.from_user.is_bot:
+            return
         lead_user_id = msg.chat.id
         logger.debug(
             "Outgoing business_message: from_user.id=%s manager.user_id=%s chat.id=%s text=%r date=%s",
             msg.from_user.id,
             manager["user_id"],
             msg.chat.id,
-            (msg.text or "")[:80],
+            msg.text[:80],
             msg.date,
         )
         lead = await db.get_lead(connection_id, lead_user_id)
-        if lead and not lead.get("replied") and lead.get("row_number"):
-            now = datetime.now(timezone.utc)
-            dt = now.strftime("%d.%m.%y %H:%M")
-            try:
-                await sheets.update_date_svyazi(lead["row_number"], dt)
-                await db.mark_lead_replied(connection_id, lead_user_id)
-                logger.info("Дата связи updated: lead_id=%s row=%s", lead_user_id, lead["row_number"])
-            except Exception:
-                logger.exception("Failed to update Дата связи: lead_id=%s", lead_user_id)
+        if not lead or lead.get("replied") or not lead.get("row_number"):
+            logger.debug("Outgoing: no eligible lead for chat.id=%s — skipping", lead_user_id)
+            return
+        now = datetime.now(timezone.utc)
+        dt = now.strftime("%d.%m.%y %H:%M")
+        try:
+            await sheets.update_date_svyazi(lead["row_number"], dt)
+            await db.mark_lead_replied(connection_id, lead_user_id)
+            logger.info("Дата связи updated: lead_id=%s row=%s", lead_user_id, lead["row_number"])
+        except Exception:
+            logger.exception("Failed to update Дата связи: lead_id=%s", lead_user_id)
         return
 
     if await db.lead_exists(connection_id, msg.from_user.id):
