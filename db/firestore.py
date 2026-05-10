@@ -38,6 +38,13 @@ async def get_manager_by_user_id(user_id: int) -> tuple[str, dict] | None:
     return None
 
 
+async def reset_manager_crm(connection_id: str) -> None:
+    await _db.collection(MANAGERS).document(connection_id).update({
+        "status": "awaiting_crm_name",
+        "crm_name": "",
+    })
+
+
 async def update_manager_crm(connection_id: str, crm_name: str) -> None:
     await _db.collection(MANAGERS).document(connection_id).update({
         "crm_name": crm_name,

@@ -171,6 +171,30 @@ async def on_callback_query(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         logger.warning("Could not notify manager %s: %s", manager["user_id"], e)
 
 
+async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if update.effective_user is None or update.effective_user.id not in config.ADMIN_CHAT_IDS:
+        return
+    await update.message.reply_text(
+        "/managers — список менеджеров со статусом и датой подключения\n"
+        "/delete @username — удалить менеджера из базы\n"
+        "/reset — сбросить CRM ник (для менеджеров)\n"
+        "/help — список команд"
+    )
+
+
+async def cmd_reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if update.effective_user is None:
+        return
+    result = await db.get_manager_by_user_id(update.effective_user.id)
+    if result is None:
+        await update.message.reply_text("Ты не зарегистрирован как менеджер.")
+        return
+    connection_id, _ = result
+    await db.reset_manager_crm(connection_id)
+    await update.message.reply_text("Введи новый CRM ник")
+    logger.info("Manager reset CRM: user_id=%s", update.effective_user.id)
+
+
 async def cmd_delete(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.effective_user is None or update.effective_user.id not in config.ADMIN_CHAT_IDS:
         return

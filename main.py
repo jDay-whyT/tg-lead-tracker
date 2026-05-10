@@ -18,7 +18,9 @@ import bot.sheets as _sheets
 import config
 from bot.handlers import (
     cmd_delete,
+    cmd_help,
     cmd_managers,
+    cmd_reset,
     on_business_connection,
     on_business_message,
     on_callback_query,
@@ -40,6 +42,8 @@ async def lifespan(app: FastAPI):
     _ptb.add_handler(CallbackQueryHandler(on_callback_query))
     _ptb.add_handler(CommandHandler("managers", cmd_managers))
     _ptb.add_handler(CommandHandler("delete", cmd_delete))
+    _ptb.add_handler(CommandHandler("help", cmd_help))
+    _ptb.add_handler(CommandHandler("reset", cmd_reset))
     _ptb.add_handler(MessageHandler(filters.TEXT & filters.ChatType.PRIVATE & ~filters.COMMAND, on_regular_message))
 
     await asyncio.to_thread(_sheets.init_header)
