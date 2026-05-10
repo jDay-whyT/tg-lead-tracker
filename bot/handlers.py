@@ -88,7 +88,7 @@ async def on_business_message(update: Update, context: ContextTypes.DEFAULT_TYPE
     text = msg.text or msg.caption or ""
     try:
         await sheets.append_lead(
-            manager_username=manager.get("username", ""),
+            crm_name=manager.get("crm_name", ""),
             lead_user=msg.from_user,
             message_text=text,
         )
