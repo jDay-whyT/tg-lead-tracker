@@ -97,6 +97,5 @@ async def append_lead(crm_name: str, lead_user, message_text: str) -> int:
         "Дата": dt,
         "Telegram": f"@{username}" if username else full_name,
         "Должность": "manager",
-        "Дата связи": dt,
     }
     return await asyncio.to_thread(_append_row_sync, data)
