@@ -1,22 +1,69 @@
 # tg-lead-tracker
 
-Telegram bot that monitors HR managers' personal chats via the Business Bot API. When a new user messages a manager, the bot logs it as a lead to Google Sheets.
+Telegram bot that monitors HR managers' personal chats via the Business Bot API. When a new contact messages a manager, the bot logs it as a lead to Google Sheets. When the manager replies, the contact timestamp is written back to the same row.
 
 ## How it works
 
 1. HR manager connects the bot via Telegram → Settings → Chat Automation
-2. Bot notifies admin and waits for approval
-3. Once approved, every incoming message from a new contact is logged to Google Sheets
-4. Duplicate leads (same user, same manager) are skipped automatically
+2. Bot prompts the manager to enter their CRM nickname
+3. Admin receives an approval request with CRM nickname, @username, user_id
+4. Once approved, every first incoming message from a new contact is logged to Google Sheets
+5. When the manager replies to that contact, `Дата связи` column is filled automatically
+6. Duplicate leads (same user, same manager) are skipped
 
 ## Stack
 
 - **Python 3.12** + python-telegram-bot v21
 - **FastAPI** + uvicorn (webhook server)
 - **Google Cloud Run** (hosting)
-- **Google Firestore** (manager registry + lead deduplication)
-- **Google Sheets API** (lead log)
+- **Google Firestore** (manager registry + lead deduplication + row tracking)
+- **Google Sheets API** (lead log, sheet: `candidates`)
 - **Application Default Credentials** (no key files)
+
+## Registration flow
+
+```
+Manager connects bot (Chat Automation)
+        ↓
+Bot asks: "Привет! Введи свой CRM ник"
+        ↓
+Manager replies with CRM nickname
+        ↓
+Admin receives: CRM ник | @username | user_id  [Approve ✅] [Reject ❌]
+        ↓
+Manager notified: approved or denied
+```
+
+## Lead logging flow
+
+```
+Lead messages manager
+        ↓
+Bot checks: approved manager, new lead (not in Firestore)
+        ↓
+Writes row to candidates sheet (sparse — only known columns)
+Saves row_number to Firestore
+        ↓
+Manager replies to lead
+        ↓
+Bot fills Дата связи at saved row_number (once only)
+```
+
+## Google Sheets
+
+Sheet name: `candidates`
+
+Columns matched by header name — order in the sheet does not matter. Bot reads the header row at container startup.
+
+| Header | Value |
+|---|---|
+| `Стейдж HR, точно так,как в CRM` | Manager's CRM nickname |
+| `Дата` | Lead's first message timestamp `DD.MM.YY HH:MM` |
+| `Telegram` | `@username` or full name if no username |
+| `Должность` | `manager` (hardcoded) |
+| `Дата связи` | Manager's first reply timestamp `DD.MM.YY HH:MM` |
+
+All other columns are left untouched.
 
 ## Setup
 
@@ -36,36 +83,26 @@ Fill in `.env`:
 | `ADMIN_CHAT_ID` | Your Telegram user ID (receives approval requests) |
 | `GOOGLE_SHEETS_ID` | ID from the spreadsheet URL |
 | `FIRESTORE_PROJECT_ID` | GCP project ID |
-| `WEBHOOK_SECRET` | Optional — passed to Telegram's `setWebhook` |
+| `WEBHOOK_SECRET` | Optional — validated via `X-Telegram-Bot-Api-Secret-Token` header |
 
-### 2. Google Sheets
+### 2. GCP service account
 
-Create a sheet named `Leads` with this exact header row in row 1:
-
-```
-DATE | TIME | HR | @user | NAME | ID | TEXT
-```
-
-Column order can be changed — the bot reads the header at startup and maps values by name.
-
-### 3. GCP service account
-
-Assign a service account to the Cloud Run service with these roles:
+Assign a service account to the Cloud Run service with:
 - `roles/datastore.user` (Firestore)
-- `roles/sheets.writer` (Sheets, or share the spreadsheet with the SA email)
+- Share the `candidates` spreadsheet with the SA email (Editor role)
 
 ## Deployment
 
-Deployment is via GitHub Actions (`.github/workflows/deploy.yml`, `workflow_dispatch`).
+Via GitHub Actions — `.github/workflows/deploy.yml`, trigger: `workflow_dispatch`.
 
 Required GitHub secrets:
 
-| Secret | Value |
+| Secret | Description |
 |---|---|
 | `GCP_PROJECT` | GCP project ID |
 | `GCP_REGION` | e.g. `europe-west1` |
-| `CLOUD_RUN_SERVICE` | e.g. `tg-lead-tracker` |
-| `GOOGLE_SERVICE_ACCOUNT` | Service account JSON (for CI auth only) |
+| `CLOUD_RUN_SERVICE` | Cloud Run service name |
+| `GOOGLE_SERVICE_ACCOUNT` | Service account JSON (CI deploy auth only) |
 | `BOT_TOKEN` | |
 | `ADMIN_CHAT_ID` | |
 | `GOOGLE_SHEETS_ID` | |
@@ -83,7 +120,15 @@ https://api.telegram.org/bot{TOKEN}/setWebhook?url={CLOUD_RUN_URL}/webhook&secre
 | Command | Description |
 |---|---|
 | `/managers` | List all managers with status and connection date |
+| `/delete @username` | Remove a manager from Firestore |
 
-## Lead deduplication
+Admin-only — commands from other users are silently ignored.
 
-First message from a lead is logged. Subsequent messages from the same user to the same manager are silently ignored. Dedup state lives in Firestore (`leads` collection) and persists across restarts.
+## Firestore collections
+
+| Collection | Document ID | Key fields |
+|---|---|---|
+| `managers` | `business_connection_id` | `user_id`, `username`, `crm_name`, `status`, `connected_at` |
+| `leads` | `{connection_id}_{lead_user_id}` | `row_number`, `replied` |
+
+Manager statuses: `awaiting_crm_name` → `pending` → `approved` / `rejected` / `disconnected`
