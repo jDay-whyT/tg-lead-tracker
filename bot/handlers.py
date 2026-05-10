@@ -22,10 +22,11 @@ async def on_business_connection(update: Update, context: ContextTypes.DEFAULT_T
     if not bc.is_enabled:
         await db.update_manager_status(connection_id, "disconnected")
         username = bc.user.username or bc.user.first_name or str(bc.user.id)
-        await context.bot.send_message(
-            chat_id=config.ADMIN_CHAT_ID,
-            text=f"Manager @{username} disconnected the bot ⚠️",
-        )
+        for admin_id in config.ADMIN_CHAT_IDS:
+            await context.bot.send_message(
+                chat_id=admin_id,
+                text=f"Manager @{username} disconnected the bot ⚠️",
+            )
         return
 
     user = bc.user
@@ -171,7 +172,7 @@ async def on_callback_query(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
 
 async def cmd_delete(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if update.effective_user is None or update.effective_user.id != config.ADMIN_CHAT_ID:
+    if update.effective_user is None or update.effective_user.id not in config.ADMIN_CHAT_IDS:
         return
 
     args = context.args
@@ -189,7 +190,7 @@ async def cmd_delete(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
 
 
 async def cmd_managers(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if update.effective_user is None or update.effective_user.id != config.ADMIN_CHAT_ID:
+    if update.effective_user is None or update.effective_user.id not in config.ADMIN_CHAT_IDS:
         return
 
     managers = await db.list_managers()

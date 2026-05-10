@@ -103,7 +103,6 @@ jobs:
           flags: --allow-unauthenticated
           env_vars: |-
             BOT_TOKEN=${{ secrets.BOT_TOKEN }}
-            ADMIN_CHAT_ID=${{ secrets.ADMIN_CHAT_ID }}
             GOOGLE_SHEETS_ID=${{ secrets.GOOGLE_SHEETS_ID }}
             FIRESTORE_PROJECT_ID=${{ secrets.FIRESTORE_PROJECT_ID }}
             WEBHOOK_SECRET=${{ secrets.WEBHOOK_SECRET }}

@@ -21,8 +21,9 @@ async def notify_admin(bot: Bot, manager: dict, connection_id: str) -> None:
         f"CRM ник: {crm_name}\n"
         f"@{username} | user_id: {user_id}"
     )
-    await bot.send_message(
-        chat_id=config.ADMIN_CHAT_ID,
-        text=text,
-        reply_markup=approval_keyboard(connection_id),
-    )
+    for admin_id in config.ADMIN_CHAT_IDS:
+        await bot.send_message(
+            chat_id=admin_id,
+            text=text,
+            reply_markup=approval_keyboard(connection_id),
+        )
