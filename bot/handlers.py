@@ -102,9 +102,8 @@ async def on_business_message(update: Update, context: ContextTypes.DEFAULT_TYPE
             logger.info("Outgoing: no eligible lead for chat.id=%s — skipping", lead_user_id)
             return
         now = datetime.now(timezone.utc)
-        dt = now.strftime("%d.%m.%y %H:%M")
         try:
-            await sheets.update_date_svyazi(lead["row_number"], dt)
+            await sheets.update_date_svyazi(lead["row_number"], now)
             await db.mark_lead_replied(connection_id, lead_user_id)
             logger.info("Дата связи updated: lead_id=%s row=%s", lead_user_id, lead["row_number"])
         except Exception:

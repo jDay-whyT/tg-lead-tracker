@@ -36,6 +36,7 @@ def _read_header() -> list[str]:
 
 _header: list[str] = []
 _date_svyazi_col: str = ""
+_time_svyazi_col: str = ""
 
 
 def _col_letter(n: int) -> str:
@@ -47,10 +48,13 @@ def _col_letter(n: int) -> str:
 
 
 def init_header() -> None:
-    global _header, _date_svyazi_col
+    global _header, _date_svyazi_col, _time_svyazi_col
     _header = _read_header()
     _date_svyazi_col = (
         _col_letter(_header.index("Дата связи") + 1) if "Дата связи" in _header else ""
+    )
+    _time_svyazi_col = (
+        _col_letter(_header.index("Время связи") + 1) if "Время связи" in _header else ""
     )
 
 
@@ -95,33 +99,47 @@ def _append_row_sync(data: dict) -> int:
     return row_number
 
 
-def _update_date_svyazi_sync(row_number: int, dt_str: str) -> None:
-    if not _date_svyazi_col:
-        logger.warning("Дата связи column not found in header — skipping update")
+def _update_date_svyazi_sync(row_number: int, now: datetime) -> None:
+    date_str = now.strftime("%d.%m.%Y")
+    time_str = now.strftime("%H:%M")
+    batch_data = []
+    if _date_svyazi_col:
+        batch_data.append({
+            "range": f"{_SHEET}!{_date_svyazi_col}{row_number}",
+            "values": [[date_str]],
+        })
+    else:
+        logger.warning("Дата связи column not found in header — skipping")
+    if _time_svyazi_col:
+        batch_data.append({
+            "range": f"{_SHEET}!{_time_svyazi_col}{row_number}",
+            "values": [[time_str]],
+        })
+    else:
+        logger.warning("Время связи column not found in header — skipping")
+    if not batch_data:
         return
     _refresh_creds()
-    _service.spreadsheets().values().update(
+    _service.spreadsheets().values().batchUpdate(
         spreadsheetId=config.GOOGLE_SHEETS_ID,
-        range=f"{_SHEET}!{_date_svyazi_col}{row_number}",
-        valueInputOption="RAW",
-        body={"values": [[dt_str]]},
+        body={"valueInputOption": "RAW", "data": batch_data},
     ).execute()
 
 
-async def update_date_svyazi(row_number: int, dt_str: str) -> None:
-    await asyncio.to_thread(_update_date_svyazi_sync, row_number, dt_str)
+async def update_date_svyazi(row_number: int, now: datetime) -> None:
+    await asyncio.to_thread(_update_date_svyazi_sync, row_number, now)
 
 
 async def append_lead(crm_name: str, lead_user, message_text: str) -> int:
     now = datetime.now(timezone.utc)
-    dt = now.strftime("%d.%m.%y %H:%M")
     first = getattr(lead_user, "first_name", "") or ""
     last = getattr(lead_user, "last_name", "") or ""
     full_name = f"{first} {last}".strip()
     username = getattr(lead_user, "username", "") or ""
     data = {
         "Стейдж HR, точно так,как в CRM": crm_name or "",
-        "Дата": dt,
+        "Дата": now.strftime("%d.%m.%Y"),
+        "Время": now.strftime("%H:%M"),
         "Telegram": f"@{username}" if username else full_name,
         "Должность": "manager",
     }
