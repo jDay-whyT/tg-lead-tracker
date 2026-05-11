@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import re
 from datetime import datetime, timezone
 
 import google.auth
@@ -63,21 +62,29 @@ def _refresh_creds() -> None:
         _creds.refresh(google.auth.transport.requests.Request())
 
 
+_CRM_COL_NAME = "Стейдж HR, точно так,как в CRM"
+
+
+def _find_first_empty_row() -> int:
+    if _CRM_COL_NAME not in _header:
+        logger.error("Column '%s' not in header — cannot find empty row", _CRM_COL_NAME)
+        return 0
+    col = _col_letter(_header.index(_CRM_COL_NAME) + 1)
+    result = _service.spreadsheets().values().get(
+        spreadsheetId=config.GOOGLE_SHEETS_ID,
+        range=f"{_SHEET}!{col}2:{col}10000",
+    ).execute()
+    values = result.get("values", [])
+    for i, row in enumerate(values):
+        if not row or not str(row[0]).strip():
+            return i + 2
+    return len(values) + 2
+
+
 def _append_row_sync(data: dict) -> int:
     _refresh_creds()
-    result = _service.spreadsheets().values().append(
-        spreadsheetId=config.GOOGLE_SHEETS_ID,
-        range=f"{_SHEET}!A1",
-        valueInputOption="RAW",
-        insertDataOption="INSERT_ROWS",
-        body={"values": [[""]]},
-    ).execute()
-    updated_range = result.get("updates", {}).get("updatedRange", "")
-    match = re.search(r"(\d+)$", updated_range)
-    row_number = int(match.group(1)) if match else 0
-
+    row_number = _find_first_empty_row()
     if not row_number:
-        logger.error("Could not parse row number from: %s", updated_range)
         return 0
 
     batch_data = []
