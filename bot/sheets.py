@@ -2,7 +2,8 @@ import asyncio
 import logging
 import ssl
 import time
-from datetime import datetime, timezone
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import google.auth
 import google.auth.transport.requests
@@ -178,7 +179,7 @@ async def update_date_svyazi(row_number: int, now: datetime) -> None:
 
 
 async def append_lead(crm_name: str, lead_user, message_text: str) -> int:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(ZoneInfo("Europe/Kiev"))
     first = getattr(lead_user, "first_name", "") or ""
     last = getattr(lead_user, "last_name", "") or ""
     full_name = f"{first} {last}".strip()

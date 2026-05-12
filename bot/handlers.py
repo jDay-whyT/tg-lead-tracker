@@ -1,5 +1,6 @@
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from telegram import Update
 from telegram.ext import ContextTypes
@@ -35,7 +36,7 @@ async def on_business_connection(update: Update, context: ContextTypes.DEFAULT_T
         "username": user.username or "",
         "first_name": user.first_name or "",
         "status": "awaiting_crm_name",
-        "connected_at": datetime.now(timezone.utc).isoformat(),
+        "connected_at": datetime.now(ZoneInfo("Europe/Kiev")).isoformat(),
     }
     await db.save_manager(connection_id, manager_data)
     await context.bot.send_message(
@@ -101,7 +102,7 @@ async def on_business_message(update: Update, context: ContextTypes.DEFAULT_TYPE
         if not lead or lead.get("replied") or not lead.get("row_number"):
             logger.info("Outgoing: no eligible lead for chat.id=%s — skipping", lead_user_id)
             return
-        now = datetime.now(timezone.utc)
+        now = datetime.now(ZoneInfo("Europe/Kiev"))
         try:
             await sheets.update_date_svyazi(lead["row_number"], now)
             await db.mark_lead_replied(connection_id, lead_user_id)
