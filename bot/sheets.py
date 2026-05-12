@@ -89,6 +89,18 @@ def _refresh_creds() -> None:
 _CRM_COL_NAME = "Стейдж HR, точно так,как в CRM"
 
 
+def _telegram_exists(value: str) -> bool:
+    if "Telegram" not in _header:
+        return False
+    col = _col_letter(_header.index("Telegram") + 1)
+    result = _execute(lambda: _service.spreadsheets().values().get(
+        spreadsheetId=config.GOOGLE_SHEETS_ID,
+        range=f"{_SHEET}!{col}2:{col}10000",
+    ))
+    values = result.get("values", [])
+    return any(row and row[0] == value for row in values)
+
+
 def _find_first_empty_row() -> int:
     if _CRM_COL_NAME not in _header:
         logger.error("Column '%s' not in header — cannot find empty row", _CRM_COL_NAME)
@@ -107,6 +119,10 @@ def _find_first_empty_row() -> int:
 
 def _append_row_sync(data: dict) -> int:
     _refresh_creds()
+    telegram_value = data.get("Telegram", "")
+    if telegram_value and _telegram_exists(telegram_value):
+        logger.info("Duplicate in Sheets: skipped (%s)", telegram_value)
+        return 0
     row_number = _find_first_empty_row()
     if not row_number:
         return 0
