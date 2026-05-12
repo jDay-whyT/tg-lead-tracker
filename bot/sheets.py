@@ -1,5 +1,7 @@
 import asyncio
 import logging
+import ssl
+import time
 from datetime import datetime, timezone
 
 import google.auth
@@ -13,17 +15,39 @@ logger = logging.getLogger(__name__)
 _SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
 _creds, _ = google.auth.default(scopes=_SCOPES)
-_service = build("sheets", "v4", credentials=_creds)
+_service = None
+
+
+def _build_service():
+    global _service
+    _creds.refresh(google.auth.transport.requests.Request())
+    _service = build("sheets", "v4", credentials=_creds)
+
+
+_build_service()
+
+
+def _execute(make_req, retries: int = 3):
+    """Call make_req().execute() with retry on stale-connection errors."""
+    for attempt in range(retries):
+        try:
+            return make_req().execute()
+        except (BrokenPipeError, ssl.SSLError, OSError) as exc:
+            if attempt == retries - 1:
+                raise
+            logger.warning("Sheets API connection error (attempt %d/%d): %s — rebuilding service", attempt + 1, retries, exc)
+            time.sleep(0.5 * (attempt + 1))
+            _build_service()
 
 
 _SHEET = "candidates"
 
 
 def _read_header() -> list[str]:
-    result = _service.spreadsheets().values().get(
+    result = _execute(lambda: _service.spreadsheets().values().get(
         spreadsheetId=config.GOOGLE_SHEETS_ID,
         range=f"{_SHEET}!1:1",
-    ).execute()
+    ))
     rows = result.get("values", [])
     header = rows[0] if rows else []
     if not header:
@@ -70,10 +94,10 @@ def _find_first_empty_row() -> int:
         logger.error("Column '%s' not in header — cannot find empty row", _CRM_COL_NAME)
         return 0
     col = _col_letter(_header.index(_CRM_COL_NAME) + 1)
-    result = _service.spreadsheets().values().get(
+    result = _execute(lambda: _service.spreadsheets().values().get(
         spreadsheetId=config.GOOGLE_SHEETS_ID,
         range=f"{_SHEET}!{col}2:{col}10000",
-    ).execute()
+    ))
     values = result.get("values", [])
     for i, row in enumerate(values):
         if not row or not str(row[0]).strip():
@@ -98,10 +122,10 @@ def _append_row_sync(data: dict) -> int:
 
     if batch_data:
         logger.info("Writing row %s: %s", row_number, {k: v for k, v in data.items() if k in _header})
-        _service.spreadsheets().values().batchUpdate(
+        _execute(lambda: _service.spreadsheets().values().batchUpdate(
             spreadsheetId=config.GOOGLE_SHEETS_ID,
             body={"valueInputOption": "RAW", "data": batch_data},
-        ).execute()
+        ))
 
     return row_number
 
@@ -127,10 +151,10 @@ def _update_date_svyazi_sync(row_number: int, now: datetime) -> None:
     if not batch_data:
         return
     _refresh_creds()
-    _service.spreadsheets().values().batchUpdate(
+    _execute(lambda: _service.spreadsheets().values().batchUpdate(
         spreadsheetId=config.GOOGLE_SHEETS_ID,
         body={"valueInputOption": "RAW", "data": batch_data},
-    ).execute()
+    ))
 
 
 async def update_date_svyazi(row_number: int, now: datetime) -> None:
