@@ -106,6 +106,3 @@ jobs:
             GOOGLE_SHEETS_ID=${{ secrets.GOOGLE_SHEETS_ID }}
             FIRESTORE_PROJECT_ID=${{ secrets.FIRESTORE_PROJECT_ID }}
             WEBHOOK_SECRET=${{ secrets.WEBHOOK_SECRET }}
-            LEGO_FORM_ID=${{ secrets.LEGO_FORM_ID }}
-            HR_LIST=${{ secrets.HR_LIST }}
-            GROUP_CHAT_ID=${{ secrets.GROUP_CHAT_ID }}
