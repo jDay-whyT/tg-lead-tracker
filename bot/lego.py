@@ -14,14 +14,14 @@ _FORM_SHEET = "YD forma 1"
 # Column names as they appear in the form sheet header row.
 # Adjust these to match the actual Google Sheet column headers.
 _COL_CREATED_TIME = "created_time"
-_COL_FULL_NAME = "full_name"
-_COL_TELEGRAM = "telegram"
-_COL_PHONE = "phone"
+_COL_FULL_NAME = "полное_имя"
+_COL_TELEGRAM = "ваш_телеграмм_юзернейи_или_номер_телефона:"
+_COL_PHONE = "номер_телефона"
 _COL_PLATFORM = "platform"
-_COL_AGE = "age"
-_COL_EXPERIENCE = "experience"
-_COL_ENGLISH = "english"
-_COL_PC = "pc"
+_COL_AGE = "какой_ваш_возраст?"
+_COL_EXPERIENCE = "был_ли_опыт_чаттером_?"
+_COL_ENGLISH = "какое_у_вас_знание_английского_языка?"
+_COL_PC = "есть_ли_у_вас_пк\\ноутбук?_нужен_для_работы"
 
 
 def _safe(row: list, idx: int) -> str:
@@ -53,7 +53,6 @@ async def import_lego(bot: Bot) -> int:
     def idx(col_name: str) -> int:
         return header.index(col_name) if col_name in header else -1
 
-    logger.info("Form header: %s", header)
     ct_idx = idx(_COL_CREATED_TIME)
     if ct_idx < 0:
         logger.error("'%s' column not found in form header: %s", _COL_CREATED_TIME, header)
