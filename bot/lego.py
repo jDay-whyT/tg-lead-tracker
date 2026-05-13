@@ -53,6 +53,7 @@ async def import_lego(bot: Bot) -> int:
     def idx(col_name: str) -> int:
         return header.index(col_name) if col_name in header else -1
 
+    logger.info("Form header: %s", header)
     ct_idx = idx(_COL_CREATED_TIME)
     if ct_idx < 0:
         logger.error("'%s' column not found in form header: %s", _COL_CREATED_TIME, header)
