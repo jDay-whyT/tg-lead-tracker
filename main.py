@@ -16,6 +16,7 @@ from telegram.ext import (
 
 import bot.sheets as _sheets
 import config
+from bot.lego import import_lego
 from bot.handlers import (
     cmd_delete,
     cmd_help,
@@ -70,6 +71,18 @@ async def webhook(request: Request) -> Response:
     update = Update.de_json(body, _ptb.bot)
     await _ptb.process_update(update)
     return Response(status_code=200)
+
+
+@app.post("/import/lego")
+async def import_lego_endpoint(request: Request) -> Response:
+    if config.WEBHOOK_SECRET:
+        token = request.headers.get("X-Webhook-Secret", "")
+        if token != config.WEBHOOK_SECRET:
+            return Response(status_code=403)
+    if _ptb is None:
+        return Response(status_code=503)
+    count = await import_lego(_ptb.bot)
+    return Response(content=f'{{"imported":{count}}}', media_type="application/json")
 
 
 @app.get("/health")

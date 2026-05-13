@@ -46,6 +46,7 @@ async def on_business_connection(update: Update, context: ContextTypes.DEFAULT_T
 
 
 async def on_regular_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    logger.info("chat_id: %s", update.effective_chat.id)
     msg = update.message
     if msg is None or msg.from_user is None or msg.text is None:
         return

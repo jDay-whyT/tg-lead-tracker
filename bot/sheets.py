@@ -177,6 +177,22 @@ async def update_date_svyazi(row_number: int, now: datetime) -> None:
     await asyncio.to_thread(_update_date_svyazi_sync, row_number, now)
 
 
+def _read_range_sync(spreadsheet_id: str, range_: str) -> list[list]:
+    result = _execute(lambda: _service.spreadsheets().values().get(
+        spreadsheetId=spreadsheet_id,
+        range=range_,
+    ))
+    return result.get("values", [])
+
+
+async def read_range(spreadsheet_id: str, range_: str) -> list[list]:
+    return await asyncio.to_thread(_read_range_sync, spreadsheet_id, range_)
+
+
+async def append_lego_lead(data: dict) -> int:
+    return await asyncio.to_thread(_append_row_sync, data)
+
+
 async def append_lead(crm_name: str, lead_user, message_text: str) -> int:
     now = datetime.now(timezone.utc) + timedelta(hours=3)
     first = getattr(lead_user, "first_name", "") or ""

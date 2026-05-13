@@ -86,3 +86,15 @@ async def list_managers() -> list[dict]:
         d["connection_id"] = doc.id
         result.append(d)
     return result
+
+
+LEGO_STATE = "lego_state"
+
+
+async def get_lego_state() -> dict | None:
+    doc = await _db.collection(LEGO_STATE).document("state").get()
+    return doc.to_dict() if doc.exists else None
+
+
+async def set_lego_state(data: dict) -> None:
+    await _db.collection(LEGO_STATE).document("state").set(data)
