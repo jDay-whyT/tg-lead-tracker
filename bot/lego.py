@@ -103,6 +103,7 @@ async def import_lego(bot: Bot) -> int:
         pc = _safe(row, pc_idx)
 
         tg_display = f"@{telegram.lstrip('@')}" if telegram else full_name
+        tg_username = tg_display
 
         await append_lego_lead({
             "Стейдж HR, точно так,как в CRM": hr_name,
@@ -115,8 +116,9 @@ async def import_lego(bot: Bot) -> int:
         })
 
         text = (
-            f"HR: </b>{html.escape(hr_name)}<b>\n"
-            f"└ FB Ru serbia lego\n"
+            f"HR: <b>{html.escape(hr_name)}</b>\n"
+            f"└ {html.escape(tg_username)}\n"
+            f"  └ FB Ru serbia lego\n"
             f"\n"
             f"Platform: <b>{html.escape(platform)}</b>\n"
             f"Age: <b>{html.escape(age)}</b>\n"
