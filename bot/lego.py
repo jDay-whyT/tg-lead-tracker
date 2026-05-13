@@ -115,7 +115,7 @@ async def import_lego(bot: Bot) -> int:
         })
 
         text = (
-            f"<b>HR:</b> {html.escape(hr_name)}\n"
+            f"HR: </b>{html.escape(hr_name)}<b>\n"
             f"└ FB Ru serbia lego\n"
             f"\n"
             f"Platform: <b>{html.escape(platform)}</b>\n"
@@ -124,7 +124,7 @@ async def import_lego(bot: Bot) -> int:
             f"EN: <b>{html.escape(english)}</b>\n"
             f"PC: <b>{html.escape(pc)}</b>\n"
             f"\n"
-            f"👤 {html.escape(tg_display)} | {html.escape(full_name)}"
+            f"👤 {html.escape(tg_display)} | <b>{html.escape(full_name)}</b>"
         )
         await bot.send_message(chat_id=config.GROUP_CHAT_ID, text=text, parse_mode="HTML")
         processed += 1
