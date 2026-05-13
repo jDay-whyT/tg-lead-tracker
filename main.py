@@ -69,6 +69,7 @@ async def webhook(request: Request) -> Response:
 
     body = await request.json()
     update = Update.de_json(body, _ptb.bot)
+    logger.info("RAW UPDATE: %s", body)
     await _ptb.process_update(update)
     return Response(status_code=200)
 
