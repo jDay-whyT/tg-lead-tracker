@@ -86,11 +86,11 @@ async def import_lego(bot: Bot) -> int:
 
     new_rows.sort(key=lambda x: x[0])
     max_ct = new_rows[-1][0]
-    hr_names = config.HR_CRM_NAMES
+    hr_list = config.HR_LIST
     processed = 0
 
     for ct, row in new_rows:
-        hr_name = hr_names[rr_counter % len(hr_names)]
+        hr_name, tg_username = hr_list[rr_counter % len(hr_list)]
         rr_counter += 1
 
         full_name = _safe(row, fn_idx)
@@ -103,7 +103,6 @@ async def import_lego(bot: Bot) -> int:
         pc = _safe(row, pc_idx)
 
         tg_display = f"@{telegram.lstrip('@')}" if telegram else full_name
-        tg_username = tg_display
 
         await append_lego_lead({
             "Стейдж HR, точно так,как в CRM": hr_name,
