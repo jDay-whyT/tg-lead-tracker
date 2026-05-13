@@ -1,3 +1,4 @@
+import html
 import logging
 from datetime import datetime
 
@@ -114,16 +115,16 @@ async def import_lego(bot: Bot) -> int:
         })
 
         text = (
-            f"HR: </b>{hr_name}<b>\n"
+            f"<b>HR:</b> {html.escape(hr_name)}\n"
             f"└ FB Ru serbia lego\n"
             f"\n"
-            f"Platform: <b>{platform}</b>\n"
-            f"Age: <b>{age}</b>\n"
-            f"EXP: <b>{experience}</b>\n"
-            f"EN: <b>{english}</b>\n"
-            f"PC: <b>{pc}</b>\n"
+            f"Platform: <b>{html.escape(platform)}</b>\n"
+            f"Age: <b>{html.escape(age)}</b>\n"
+            f"EXP: <b>{html.escape(experience)}</b>\n"
+            f"EN: <b>{html.escape(english)}</b>\n"
+            f"PC: <b>{html.escape(pc)}</b>\n"
             f"\n"
-            f"👤 {tg_display} | </b>{full_name}</b>"
+            f"👤 {html.escape(tg_display)} | {html.escape(full_name)}"
         )
         await bot.send_message(chat_id=config.GROUP_CHAT_ID, text=text, parse_mode="HTML")
         processed += 1
