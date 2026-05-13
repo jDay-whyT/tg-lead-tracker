@@ -107,5 +107,3 @@ jobs:
             FIRESTORE_PROJECT_ID=${{ secrets.FIRESTORE_PROJECT_ID }}
             WEBHOOK_SECRET=${{ secrets.WEBHOOK_SECRET }}
             LEGO_FORM_ID=${{ secrets.LEGO_FORM_ID }}
-            HR_CRM_NAMES=${{ secrets.HR_CRM_NAMES }}
-            GROUP_CHAT_ID=${{ secrets.GROUP_CHAT_ID }}
