@@ -117,12 +117,13 @@ def _find_first_empty_row() -> int:
     return len(values) + 2
 
 
-def _append_row_sync(data: dict) -> int:
+def _append_row_sync(data: dict, dedup: bool = True) -> int:
     _refresh_creds()
-    telegram_value = data.get("Telegram", "")
-    if telegram_value and _telegram_exists(telegram_value):
-        logger.info("Duplicate in Sheets: skipped (%s)", telegram_value)
-        return 0
+    if dedup:
+        telegram_value = data.get("Telegram", "")
+        if telegram_value and _telegram_exists(telegram_value):
+            logger.info("Duplicate in Sheets: skipped (%s)", telegram_value)
+            return 0
     row_number = _find_first_empty_row()
     if not row_number:
         return 0
@@ -190,7 +191,7 @@ async def read_range(spreadsheet_id: str, range_: str) -> list[list]:
 
 
 async def append_lego_lead(data: dict) -> int:
-    return await asyncio.to_thread(_append_row_sync, data)
+    return await asyncio.to_thread(_append_row_sync, data, False)
 
 
 async def append_lead(crm_name: str, lead_user, message_text: str) -> int:

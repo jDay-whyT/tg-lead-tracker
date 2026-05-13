@@ -114,15 +114,18 @@ async def import_lego(bot: Bot) -> int:
         })
 
         text = (
-            f"👤 {tg_display} | {full_name}\n"
-            f"📱 Platform: {platform}\n"
-            f"🎂 Age: {age}\n"
-            f"💼 Experience: {experience}\n"
-            f"🇬🇧 EN: {english}\n"
-            f"💻 PC: {pc}\n"
-            f"HR: {hr_name}"
+            f"<b>HR:</b> {hr_name}\n"
+            f"└ FB Ru serbia lego\n"
+            f"\n"
+            f"Platform: <b>{platform}</b>\n"
+            f"Age: <b>{age}</b>\n"
+            f"EXP: <b>{experience}</b>\n"
+            f"EN: <b>{english}</b>\n"
+            f"PC: <b>{pc}</b>\n"
+            f"\n"
+            f"👤 {tg_display} | {full_name}"
         )
-        await bot.send_message(chat_id=config.GROUP_CHAT_ID, text=text)
+        await bot.send_message(chat_id=config.GROUP_CHAT_ID, text=text, parse_mode="HTML")
         processed += 1
 
     await set_lego_state({
