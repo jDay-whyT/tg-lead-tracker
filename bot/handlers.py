@@ -35,7 +35,7 @@ async def on_business_connection(update: Update, context: ContextTypes.DEFAULT_T
         "username": user.username or "",
         "first_name": user.first_name or "",
         "status": "awaiting_crm_name",
-        "connected_at": datetime.now(timezone.utc) + timedelta(hours=3).isoformat(),
+        "connected_at": (datetime.now(timezone.utc) + timedelta(hours=3)).isoformat(),
     }
     await db.save_manager(connection_id, manager_data)
     await context.bot.send_message(
