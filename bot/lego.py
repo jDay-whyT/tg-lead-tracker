@@ -93,25 +93,37 @@ async def import_lego(bot: Bot) -> int:
 
     for sheet in _SHEETS:
         rows = await read_range(config.LEGO_FORM_ID, f"'{sheet['name']}'!A1:Z10000")
+        logger.info("Sheet '%s': %d raw rows (incl header)", sheet["name"], len(rows))
         if not rows:
             continue
         header = rows[0]
         ct_col = sheet["cols"]["created_time"]
         if ct_col not in header:
-            logger.error("'%s' not in header for sheet '%s'", ct_col, sheet["name"])
+            logger.error("'%s' not in header for sheet '%s'; header=%s", ct_col, sheet["name"], header)
             continue
         ct_idx = header.index(ct_col)
+        skipped_empty = skipped_old = skipped_parse = 0
         for row in rows[1:]:
             ct_str = _safe(row, ct_idx)
             if not ct_str:
+                skipped_empty += 1
                 continue
             try:
                 ct = _naive(datetime.fromisoformat(ct_str))
             except ValueError:
                 logger.warning("Cannot parse created_time %r in sheet '%s'", ct_str, sheet["name"])
+                skipped_parse += 1
                 continue
             if ct > last_dt:
                 all_new.append((ct, row, header, sheet))
+            else:
+                skipped_old += 1
+        logger.info(
+            "Sheet '%s': skipped empty=%d parse_err=%d too_old=%d new=%d last_dt=%s",
+            sheet["name"], skipped_empty, skipped_parse, skipped_old,
+            len([x for x in all_new if x[3]["name"] == sheet["name"]]),
+            last_dt.isoformat(),
+        )
 
     if not all_new:
         return 0
