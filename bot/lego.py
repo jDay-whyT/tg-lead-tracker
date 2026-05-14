@@ -1,6 +1,6 @@
 import html
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from telegram import Bot
 
@@ -66,8 +66,10 @@ def _safe(row: list, idx: int) -> str:
     return row[idx] if 0 <= idx < len(row) else ""
 
 
-def _naive(dt: datetime) -> datetime:
-    return dt.replace(tzinfo=None) if dt.tzinfo else dt
+def _as_utc(dt: datetime) -> datetime:
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
 
 
 def _get(row: list, header: list, cols: dict, key: str) -> str:
@@ -79,14 +81,14 @@ def _get(row: list, header: list, cols: dict, key: str) -> str:
 
 async def import_lego(bot: Bot) -> int:
     state = await get_lego_state()
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     if state is None:
         await set_lego_state({"last_processed_created_time": now.isoformat(), "rr_counter": 0})
         logger.info("lego_state initialized, no rows processed")
         return 0
 
-    last_dt = _naive(datetime.fromisoformat(state["last_processed_created_time"]))
+    last_dt = _as_utc(datetime.fromisoformat(state["last_processed_created_time"]))
     rr_counter = state.get("rr_counter", 0)
 
     all_new: list[tuple[datetime, list, list, dict]] = []
@@ -109,7 +111,7 @@ async def import_lego(bot: Bot) -> int:
                 skipped_empty += 1
                 continue
             try:
-                ct = _naive(datetime.fromisoformat(ct_str))
+                ct = _as_utc(datetime.fromisoformat(ct_str))
             except ValueError:
                 logger.warning("Cannot parse created_time %r in sheet '%s'", ct_str, sheet["name"])
                 skipped_parse += 1
