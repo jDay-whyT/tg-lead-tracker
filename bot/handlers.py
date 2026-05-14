@@ -99,20 +99,49 @@ async def on_business_message(update: Update, context: ContextTypes.DEFAULT_TYPE
             msg.date,
         )
         lead = await db.get_lead(connection_id, lead_user_id)
-        if not lead or lead.get("replied") or not lead.get("row_number"):
-            logger.info("Outgoing: no eligible lead for chat.id=%s — skipping", lead_user_id)
-            return
         now = datetime.now(timezone.utc) + timedelta(hours=3)
-        try:
-            await sheets.update_date_svyazi(lead["row_number"], now)
-            await db.mark_lead_replied(connection_id, lead_user_id)
-            logger.info("Дата связи updated: lead_id=%s row=%s", lead_user_id, lead["row_number"])
-        except Exception:
-            logger.exception("Failed to update Дата связи: lead_id=%s", lead_user_id)
+        if lead is None:
+            username = getattr(msg.chat, "username", "") or ""
+            first = getattr(msg.chat, "first_name", "") or ""
+            last = getattr(msg.chat, "last_name", "") or ""
+            full_name = f"{first} {last}".strip()
+            tg_value = f"@{username}" if username else full_name
+            try:
+                row_number = await sheets.append_lego_lead({
+                    "Стейдж HR, точно так,как в CRM": manager.get("crm_name", ""),
+                    "Дата": now.strftime("%d.%m.%Y"),
+                    "Время": now.strftime("%H:%M"),
+                    "Telegram": tg_value,
+                    "Должность": "manager",
+                })
+                await db.mark_lead_seen(connection_id, lead_user_id, row_number)
+                logger.info("Outgoing new contact logged: lead_id=%s row=%s", lead_user_id, row_number)
+            except Exception:
+                logger.exception("Failed to write outgoing contact: lead_id=%s", lead_user_id)
+        elif not lead.get("replied") and lead.get("row_number"):
+            try:
+                await sheets.update_date_svyazi(lead["row_number"], now)
+                await db.mark_lead_replied(connection_id, lead_user_id)
+                logger.info("Дата связи updated: lead_id=%s row=%s", lead_user_id, lead["row_number"])
+            except Exception:
+                logger.exception("Failed to update Дата связи: lead_id=%s", lead_user_id)
+        else:
+            logger.info("Outgoing: lead already handled for chat.id=%s — skipping", lead_user_id)
         return
 
-    if await db.lead_exists(connection_id, msg.from_user.id):
-        logger.info("Duplicate lead skipped: lead_id=%s", msg.from_user.id)
+    lead_user_id = msg.from_user.id
+    existing_lead = await db.get_lead(connection_id, lead_user_id)
+    if existing_lead is not None:
+        if not existing_lead.get("replied") and existing_lead.get("row_number"):
+            now = datetime.now(timezone.utc) + timedelta(hours=3)
+            try:
+                await sheets.update_date_svyazi(existing_lead["row_number"], now)
+                await db.mark_lead_replied(connection_id, lead_user_id)
+                logger.info("Lead replied, Дата связи updated: lead_id=%s row=%s", lead_user_id, existing_lead["row_number"])
+            except Exception:
+                logger.exception("Failed to update Дата связи on reply: lead_id=%s", lead_user_id)
+        else:
+            logger.info("Duplicate lead skipped: lead_id=%s", lead_user_id)
         return
 
     text = msg.text or msg.caption or ""
