@@ -98,9 +98,8 @@ async def on_business_message(update: Update, context: ContextTypes.DEFAULT_TYPE
             msg.text[:80],
             msg.date,
         )
-        lead = await db.get_lead(connection_id, lead_user_id)
         now = datetime.now(timezone.utc) + timedelta(hours=3)
-        if lead is None:
+        if not await db.lead_exists(connection_id, lead_user_id):
             username = getattr(msg.chat, "username", "") or ""
             first = getattr(msg.chat, "first_name", "") or ""
             last = getattr(msg.chat, "last_name", "") or ""
@@ -118,15 +117,17 @@ async def on_business_message(update: Update, context: ContextTypes.DEFAULT_TYPE
                 logger.info("Outgoing new contact logged: lead_id=%s row=%s", lead_user_id, row_number)
             except Exception:
                 logger.exception("Failed to write outgoing contact: lead_id=%s", lead_user_id)
-        elif not lead.get("replied") and lead.get("row_number"):
-            try:
-                await sheets.update_date_svyazi(lead["row_number"], now)
-                await db.mark_lead_replied(connection_id, lead_user_id)
-                logger.info("Дата связи updated: lead_id=%s row=%s", lead_user_id, lead["row_number"])
-            except Exception:
-                logger.exception("Failed to update Дата связи: lead_id=%s", lead_user_id)
         else:
-            logger.info("Outgoing: lead already handled for chat.id=%s — skipping", lead_user_id)
+            lead = await db.get_lead(connection_id, lead_user_id)
+            if lead and not lead.get("replied") and lead.get("row_number"):
+                try:
+                    await sheets.update_date_svyazi(lead["row_number"], now)
+                    await db.mark_lead_replied(connection_id, lead_user_id)
+                    logger.info("Дата связи updated: lead_id=%s row=%s", lead_user_id, lead["row_number"])
+                except Exception:
+                    logger.exception("Failed to update Дата связи: lead_id=%s", lead_user_id)
+            else:
+                logger.info("Outgoing: lead already handled for chat.id=%s — skipping", lead_user_id)
         return
 
     lead_user_id = msg.from_user.id
