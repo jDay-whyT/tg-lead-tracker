@@ -116,7 +116,7 @@ async def import_lego(bot: Bot) -> int:
                 logger.warning("Cannot parse created_time %r in sheet '%s'", ct_str, sheet["name"])
                 skipped_parse += 1
                 continue
-            if ct > last_dt:
+            if ct >= last_dt:
                 all_new.append((ct, row, header, sheet))
             else:
                 skipped_old += 1
@@ -131,7 +131,6 @@ async def import_lego(bot: Bot) -> int:
         return 0
 
     all_new.sort(key=lambda x: x[0])
-    max_ct = all_new[-1][0]
     hr_list = config.HR_LIST
     processed = 0
 
@@ -152,16 +151,6 @@ async def import_lego(bot: Bot) -> int:
         age = g("age")
 
         tg_display = f"@{telegram.lstrip('@')}" if telegram else full_name
-
-        await append_lego_lead({
-            "Стейдж HR, точно так,как в CRM": hr_name,
-            "Дата": ct.strftime("%d.%m.%Y"),
-            "Имя Лида": full_name,
-            "Telegram": tg_display,
-            "Телефон": phone,
-            "Должность": "manager",
-            "Источник": source,
-        })
 
         if sheet["type"] == "yd":
             text = (
@@ -192,12 +181,28 @@ async def import_lego(bot: Bot) -> int:
                 f"👤 {html.escape(tg_display)} | <b>{html.escape(full_name)}</b>"
             )
 
+        written = await append_lego_lead({
+            "Стейдж HR, точно так,как в CRM": hr_name,
+            "Дата": ct.strftime("%d.%m.%Y"),
+            "Имя Лида": full_name,
+            "Telegram": tg_display,
+            "Телефон": phone,
+            "Должность": "manager",
+            "Источник": source,
+        })
+        if not written:
+            await set_lego_state({
+                "last_processed_created_time": ct.isoformat(),
+                "rr_counter": rr_counter,
+            })
+            continue
+
         await bot.send_message(chat_id=config.GROUP_CHAT_ID, text=text, parse_mode="HTML")
         processed += 1
+        await set_lego_state({
+            "last_processed_created_time": ct.isoformat(),
+            "rr_counter": rr_counter,
+        })
 
-    await set_lego_state({
-        "last_processed_created_time": max_ct.isoformat(),
-        "rr_counter": rr_counter,
-    })
     logger.info("lego import: processed %d rows", processed)
     return processed

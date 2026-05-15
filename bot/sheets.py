@@ -191,7 +191,7 @@ async def read_range(spreadsheet_id: str, range_: str) -> list[list]:
 
 
 async def append_lego_lead(data: dict) -> int:
-    return await asyncio.to_thread(_append_row_sync, data, False)
+    return await asyncio.to_thread(_append_row_sync, data, True)
 
 
 async def append_lead(crm_name: str, lead_user, message_text: str) -> int:
