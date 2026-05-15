@@ -154,31 +154,25 @@ async def import_lego(bot: Bot) -> int:
 
         if sheet["type"] == "yd":
             text = (
-                f"HR: <b>{html.escape(hr_name)}</b>\n"
-                f" └ {html.escape(tg_username)}\n"
-                f"    └ {html.escape(source)}\n"
+                f"{html.escape(source)}\n"
+                f"└ {html.escape(hr_name)} | @{html.escape(tg_username.lstrip('@'))}\n"
                 f"\n"
-                f"From: <b>{html.escape(platform)}</b>\n"
-                f"Age: <b>{html.escape(age)}</b>\n"
-                f"EXP: <b>{html.escape(g('experience'))}</b>\n"
-                f"EN: <b>{html.escape(g('english'))}</b>\n"
-                f"PC: <b>{html.escape(g('pc'))}</b>\n"
-                f"\n"
-                f"👤 {html.escape(tg_display)} | <b>{html.escape(full_name)}</b>"
+                f"From: {html.escape(platform)}\n"
+                f"Age: {html.escape(age)}\n"
+                f"EXP: {html.escape(g('experience'))}\n"
+                f"EN: {html.escape(g('english'))}\n"
+                f"PC: {html.escape(g('pc'))}"
             )
         else:
             text = (
-                f"HR: <b>{html.escape(hr_name)}</b>\n"
-                f"└ {html.escape(tg_username)}\n"
-                f"  └ {html.escape(source)}\n"
+                f"{html.escape(source)}\n"
+                f"└ {html.escape(hr_name)} | @{html.escape(tg_username.lstrip('@'))}\n"
                 f"\n"
-                f"From: <b>{html.escape(platform)}</b>\n"
-                f"Age: <b>{html.escape(age)}</b>\n"
-                f"City: <b>{html.escape(g('city'))}</b>\n"
-                f"Format: <b>{html.escape(g('format'))}</b>\n"
-                f"Night shifts: <b>{html.escape(g('night_shifts'))}</b>\n"
-                f"\n"
-                f"👤 {html.escape(tg_display)} | <b>{html.escape(full_name)}</b>"
+                f"From: {html.escape(platform)}\n"
+                f"Age: {html.escape(age)}\n"
+                f"City: {html.escape(g('city'))}\n"
+                f"Format: {html.escape(g('format'))}\n"
+                f"Night shifts: {html.escape(g('night_shifts'))}"
             )
 
         written = await append_lego_lead({
