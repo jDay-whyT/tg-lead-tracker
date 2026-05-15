@@ -136,7 +136,6 @@ async def import_lego(bot: Bot) -> int:
 
     for ct, row, header, sheet in all_new:
         hr_name, tg_username = hr_list[rr_counter % len(hr_list)]
-        rr_counter += 1
 
         cols = sheet["cols"]
         source = sheet["source"]
@@ -195,6 +194,7 @@ async def import_lego(bot: Bot) -> int:
             })
             continue
 
+        rr_counter += 1
         await bot.send_message(chat_id=config.GROUP_CHAT_ID, text=text, parse_mode="HTML")
         processed += 1
         await set_lego_state({
