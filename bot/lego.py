@@ -116,7 +116,7 @@ async def import_lego(bot: Bot) -> int:
                 logger.warning("Cannot parse created_time %r in sheet '%s'", ct_str, sheet["name"])
                 skipped_parse += 1
                 continue
-            if ct >= last_dt:
+            if ct > last_dt:
                 all_new.append((ct, row, header, sheet))
             else:
                 skipped_old += 1
