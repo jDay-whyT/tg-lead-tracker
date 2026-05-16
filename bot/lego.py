@@ -1,5 +1,6 @@
 import html
 import logging
+import re
 from datetime import datetime, timezone
 
 from telegram import Bot
@@ -70,6 +71,16 @@ def _as_utc(dt: datetime) -> datetime:
     if dt.tzinfo is None:
         return dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc)
+
+
+def _normalize_tg(raw: str, fallback: str) -> str:
+    s = raw.strip()
+    if not s:
+        return fallback
+    if re.match(r'^[+\d][\d\s\-()]{6,}$', s):
+        return s  # looks like a phone number, keep as-is
+    m = re.search(r'@?([\w]{3,})', s)
+    return f"@{m.group(1)}" if m else fallback
 
 
 def _get(row: list, header: list, cols: dict, key: str) -> str:
@@ -149,7 +160,7 @@ async def import_lego(bot: Bot) -> int:
         platform = g("platform")
         age = g("age")
 
-        tg_display = f"@{telegram.lstrip('@')}" if telegram else full_name
+        tg_display = _normalize_tg(telegram, full_name)
 
         if sheet["type"] == "yd":
             text = (
