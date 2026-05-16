@@ -31,8 +31,8 @@ jobs:
           PROJECT_RAW: ${{ secrets.GCP_PROJECT }}
           REGION_RAW: ${{ secrets.GCP_REGION }}
           SERVICE_RAW: ${{ secrets.CLOUD_RUN_SERVICE }}
-          AR_REPO_RAW: fopai
-          IMAGE_RAW: fopai-bot
+          AR_REPO_RAW: tg-lead-tracker
+          IMAGE_RAW: tg-lead-tracker
         run: |
           set -euo pipefail
 
