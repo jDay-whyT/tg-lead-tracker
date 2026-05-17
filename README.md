@@ -16,8 +16,8 @@ Telegram bot that monitors HR managers' personal chats via the Business Bot API.
 - **Python 3.12** + python-telegram-bot v21
 - **FastAPI** + uvicorn (webhook server)
 - **Google Cloud Run** (hosting)
-- **Google Firestore** (manager registry + lead deduplication + row tracking)
-- **Google Sheets API** (lead log, sheet: `candidates`)
+- **Google Firestore** (manager registry + lead deduplication + lego state)
+- **gspread** (Google Sheets read/write — lighter than google-api-python-client)
 - **Application Default Credentials** (no key files)
 
 ## Registration flow
@@ -65,6 +65,36 @@ Columns matched by header name — order in the sheet does not matter. Bot reads
 
 All other columns are left untouched.
 
+## Lego form import
+
+Separate pipeline that polls Google Sheets forms on a 5-minute Cloud Scheduler schedule via `POST /import/lego`.
+
+Supported sheets (configured in `bot/lego.py`):
+- **YD forma 1** — source `YD Lego`
+- **belgrade 1 lego** — source `FB Ru serbia lego`
+- **belgrade 2 BW** — source `FB Eng serbia BW`
+
+### Lego import flow
+
+```
+Cloud Scheduler → POST /import/lego
+        ↓
+Read all configured sheets (new rows only, by created_time)
+        ↓
+For each new row (oldest first):
+  Deduplicate by Telegram handle in candidates sheet
+  Assign HR via round-robin (HR_LIST)
+  Write row to candidates sheet
+  Send Telegram group notification
+  Advance state cursor in Firestore
+```
+
+State persisted in Firestore (`lego_state/state`): `last_processed_created_time` + `rr_counter`.
+
+Telegram field is normalised on import: `@username` extracted from free-text, phone numbers kept as-is.
+
+---
+
 ## Setup
 
 ### 1. Clone and configure
@@ -83,7 +113,10 @@ Fill in `.env`:
 | `ADMIN_CHAT_ID` | Comma-separated Telegram user IDs — `123,456` — receive approval requests and alerts |
 | `GOOGLE_SHEETS_ID` | ID from the spreadsheet URL |
 | `FIRESTORE_PROJECT_ID` | GCP project ID |
-| `WEBHOOK_SECRET` | Optional — validated via `X-Telegram-Bot-Api-Secret-Token` header |
+| `WEBHOOK_SECRET` | Optional — validated via `X-Telegram-Bot-Api-Secret-Token` (webhook) and `X-Webhook-Secret` (lego). Startup warning logged if unset. |
+| `LEGO_FORM_ID` | Google Sheets ID of the lego forms spreadsheet |
+| `HR_LIST` | Comma-separated `Name:@username` pairs — `Mia:@mia_hr,Dima:@dima_hr` |
+| `GROUP_CHAT_ID` | Telegram group chat ID for lego lead notifications |
 
 ### 2. GCP service account
 
@@ -140,5 +173,6 @@ Silently ignored for non-admins.
 |---|---|---|
 | `managers` | `business_connection_id` | `user_id`, `username`, `crm_name`, `status`, `connected_at` |
 | `leads` | `{connection_id}_{lead_user_id}` | `row_number`, `replied` |
+| `lego_state` | `state` | `last_processed_created_time`, `rr_counter` |
 
 Manager statuses: `awaiting_crm_name` → `pending` → `approved` / `rejected` / `disconnected`
