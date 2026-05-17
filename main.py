@@ -47,6 +47,9 @@ async def lifespan(app: FastAPI):
     _ptb.add_handler(CommandHandler("reset", cmd_reset))
     _ptb.add_handler(MessageHandler(filters.TEXT & filters.ChatType.PRIVATE & ~filters.COMMAND, on_regular_message))
 
+    if not config.WEBHOOK_SECRET:
+        logger.warning("WEBHOOK_SECRET is not set — /import/lego endpoint is unauthenticated")
+
     await asyncio.to_thread(_sheets.init_header)
     await _ptb.initialize()
     await _ptb.start()
