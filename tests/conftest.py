@@ -17,4 +17,4 @@ _mock_creds.expired = False
 _mock_creds.token = "fake-token"
 
 patch("google.auth.default", return_value=(_mock_creds, "test-project")).start()
-patch("googleapiclient.discovery.build", return_value=MagicMock()).start()
+patch("gspread.Client", return_value=MagicMock()).start()

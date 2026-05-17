@@ -1,12 +1,10 @@
 import asyncio
 import logging
-import ssl
 import time
 from datetime import datetime, timezone, timedelta
 
 import google.auth
-import google.auth.transport.requests
-from googleapiclient.discovery import build
+import gspread
 
 import config
 
@@ -15,48 +13,21 @@ logger = logging.getLogger(__name__)
 _SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
 _creds, _ = google.auth.default(scopes=_SCOPES)
-_service = None
+_client = gspread.Client(auth=_creds)
 
 
-def _build_service():
-    global _service
-    _creds.refresh(google.auth.transport.requests.Request())
-    _service = build("sheets", "v4", credentials=_creds)
-
-
-_build_service()
-
-
-def _execute(make_req, retries: int = 3):
-    """Call make_req().execute() with retry on stale-connection errors."""
+def _execute(fn, retries: int = 3):
     for attempt in range(retries):
         try:
-            return make_req().execute()
-        except (BrokenPipeError, ssl.SSLError, OSError) as exc:
+            return fn()
+        except Exception as exc:
             if attempt == retries - 1:
                 raise
-            logger.warning("Sheets API connection error (attempt %d/%d): %s — rebuilding service", attempt + 1, retries, exc)
+            logger.warning("Sheets API error (attempt %d/%d): %s — retrying", attempt + 1, retries, exc)
             time.sleep(0.5 * (attempt + 1))
-            _build_service()
 
 
 _SHEET = "candidates"
-
-
-def _read_header() -> list[str]:
-    result = _execute(lambda: _service.spreadsheets().values().get(
-        spreadsheetId=config.GOOGLE_SHEETS_ID,
-        range=f"{_SHEET}!1:1",
-    ))
-    rows = result.get("values", [])
-    header = rows[0] if rows else []
-    if not header:
-        logger.warning("%s sheet has no header row — writes will be empty", _SHEET)
-    else:
-        logger.info("Header read from %s: %s", _SHEET, header)
-    return header
-
-
 _header: list[str] = []
 _date_svyazi_col: str = ""
 _time_svyazi_col: str = ""
@@ -70,6 +41,18 @@ def _col_letter(n: int) -> str:
     return result
 
 
+def _read_header() -> list[str]:
+    ss = _client.open_by_key(config.GOOGLE_SHEETS_ID)
+    result = _execute(lambda: ss.values_get(f"{_SHEET}!1:1"))
+    rows = result.get("values", [])
+    header = rows[0] if rows else []
+    if not header:
+        logger.warning("%s sheet has no header row — writes will be empty", _SHEET)
+    else:
+        logger.info("Header read from %s: %s", _SHEET, header)
+    return header
+
+
 def init_header() -> None:
     global _header, _date_svyazi_col, _time_svyazi_col
     _header = _read_header()
@@ -81,11 +64,6 @@ def init_header() -> None:
     )
 
 
-def _refresh_creds() -> None:
-    if _creds.expired and hasattr(_creds, "refresh"):
-        _creds.refresh(google.auth.transport.requests.Request())
-
-
 _CRM_COL_NAME = "Стейдж HR, точно так,как в CRM"
 
 
@@ -93,10 +71,8 @@ def _telegram_exists(value: str) -> bool:
     if "Telegram" not in _header:
         return False
     col = _col_letter(_header.index("Telegram") + 1)
-    result = _execute(lambda: _service.spreadsheets().values().get(
-        spreadsheetId=config.GOOGLE_SHEETS_ID,
-        range=f"{_SHEET}!{col}2:{col}10000",
-    ))
+    ss = _client.open_by_key(config.GOOGLE_SHEETS_ID)
+    result = _execute(lambda: ss.values_get(f"{_SHEET}!{col}2:{col}10000"))
     values = result.get("values", [])
     return any(row and row[0] == value for row in values)
 
@@ -106,10 +82,8 @@ def _find_first_empty_row() -> int:
         logger.error("Column '%s' not in header — cannot find empty row", _CRM_COL_NAME)
         return 0
     col = _col_letter(_header.index(_CRM_COL_NAME) + 1)
-    result = _execute(lambda: _service.spreadsheets().values().get(
-        spreadsheetId=config.GOOGLE_SHEETS_ID,
-        range=f"{_SHEET}!{col}2:{col}10000",
-    ))
+    ss = _client.open_by_key(config.GOOGLE_SHEETS_ID)
+    result = _execute(lambda: ss.values_get(f"{_SHEET}!{col}2:{col}10000"))
     values = result.get("values", [])
     for i, row in enumerate(values):
         if not row or not str(row[0]).strip():
@@ -118,7 +92,6 @@ def _find_first_empty_row() -> int:
 
 
 def _append_row_sync(data: dict, dedup: bool = True) -> int:
-    _refresh_creds()
     if dedup:
         telegram_value = data.get("Telegram", "")
         if telegram_value and _telegram_exists(telegram_value):
@@ -139,10 +112,8 @@ def _append_row_sync(data: dict, dedup: bool = True) -> int:
 
     if batch_data:
         logger.info("Writing row %s: %s", row_number, {k: v for k, v in data.items() if k in _header})
-        _execute(lambda: _service.spreadsheets().values().batchUpdate(
-            spreadsheetId=config.GOOGLE_SHEETS_ID,
-            body={"valueInputOption": "RAW", "data": batch_data},
-        ))
+        ss = _client.open_by_key(config.GOOGLE_SHEETS_ID)
+        _execute(lambda: ss.values_batch_update({"valueInputOption": "RAW", "data": batch_data}))
 
     return row_number
 
@@ -167,11 +138,8 @@ def _update_date_svyazi_sync(row_number: int, now: datetime) -> None:
         logger.warning("Время связи column not found in header — skipping")
     if not batch_data:
         return
-    _refresh_creds()
-    _execute(lambda: _service.spreadsheets().values().batchUpdate(
-        spreadsheetId=config.GOOGLE_SHEETS_ID,
-        body={"valueInputOption": "RAW", "data": batch_data},
-    ))
+    ss = _client.open_by_key(config.GOOGLE_SHEETS_ID)
+    _execute(lambda: ss.values_batch_update({"valueInputOption": "RAW", "data": batch_data}))
 
 
 async def update_date_svyazi(row_number: int, now: datetime) -> None:
@@ -179,10 +147,8 @@ async def update_date_svyazi(row_number: int, now: datetime) -> None:
 
 
 def _read_range_sync(spreadsheet_id: str, range_: str) -> list[list]:
-    result = _execute(lambda: _service.spreadsheets().values().get(
-        spreadsheetId=spreadsheet_id,
-        range=range_,
-    ))
+    ss = _client.open_by_key(spreadsheet_id)
+    result = _execute(lambda: ss.values_get(range_))
     return result.get("values", [])
 
 
