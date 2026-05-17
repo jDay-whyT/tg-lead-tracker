@@ -5,6 +5,8 @@ from datetime import datetime, timezone, timedelta
 
 import google.auth
 import gspread
+from gspread.exceptions import APIError
+from requests.exceptions import ConnectionError, Timeout
 
 import config
 
@@ -28,10 +30,17 @@ def _execute(fn, retries: int = 3):
     for attempt in range(retries):
         try:
             return fn()
-        except Exception as exc:
+        except APIError as exc:
+            if exc.response.status_code not in (429, 500, 502, 503, 504):
+                raise
             if attempt == retries - 1:
                 raise
-            logger.warning("Sheets API error (attempt %d/%d): %s — retrying", attempt + 1, retries, exc)
+            logger.warning("Sheets API error %d (attempt %d/%d) — retrying", exc.response.status_code, attempt + 1, retries)
+            time.sleep(0.5 * (attempt + 1))
+        except (ConnectionError, Timeout) as exc:
+            if attempt == retries - 1:
+                raise
+            logger.warning("Sheets connection error (attempt %d/%d): %s — retrying", attempt + 1, retries, exc)
             time.sleep(0.5 * (attempt + 1))
 
 

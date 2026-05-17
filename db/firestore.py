@@ -97,4 +97,4 @@ async def get_lego_state() -> dict | None:
 
 
 async def set_lego_state(data: dict) -> None:
-    await _db.collection(LEGO_STATE).document("state").set(data)
+    await _db.collection(LEGO_STATE).document("state").set(data, merge=True)
