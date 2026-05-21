@@ -70,9 +70,15 @@ All other columns are left untouched.
 Separate pipeline that polls Google Sheets forms on a 5-minute Cloud Scheduler schedule via `POST /import/lego`.
 
 Supported sheets (configured in `bot/lego.py`):
-- **YD forma 1** — source `YD Lego`
-- **belgrade 1 lego** — source `FB Ru serbia lego`
-- **belgrade 2 BW** — source `FB Eng serbia BW`
+
+| Sheet | Source label | Type |
+|---|---|---|
+| `YD forma 1` | `YD Lego 1` | YD |
+| `YD Smurf` | `YD Smurf` | YD |
+| `YD Lego GEO` | from `adset_name` column (e.g. `YD Lego GE`, `YD Lego MD`, `YD Lego RO`, `YD Lego PL`) | YD |
+| `Smurf Belgrade ru` | `Smurf BG ru` | Belgrade |
+
+Sheets `OFF`, `OFF2`, `OFF3`, `OFF4` exist in the spreadsheet but are intentionally ignored.
 
 ### Lego import flow
 
@@ -80,18 +86,23 @@ Supported sheets (configured in `bot/lego.py`):
 Cloud Scheduler → POST /import/lego
         ↓
 Read all configured sheets (new rows only, by created_time)
+Each sheet read is isolated — one failing sheet does not stop others
         ↓
-For each new row (oldest first):
+Sort all new rows by created_time (oldest first)
+        ↓
+For each new row:
   Deduplicate by Telegram handle in candidates sheet
   Assign HR via round-robin (HR_LIST)
   Write row to candidates sheet
-  Send Telegram group notification
+  Send Telegram group notification (2s delay between messages)
   Advance state cursor in Firestore
 ```
 
 State persisted in Firestore (`lego_state/state`): `last_processed_created_time` + `rr_counter`.
 
 Telegram field is normalised on import: `@username` extracted from free-text, phone numbers kept as-is.
+
+Flood control: 2-second sleep between each Telegram message + automatic retry on `RetryAfter` (up to 3 attempts).
 
 ---
 
