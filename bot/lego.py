@@ -197,7 +197,8 @@ async def import_lego(bot: Bot) -> int:
                 f"EN: <b>{html.escape(g('english'))}</b>\n"
                 f"PC: <b>{html.escape(g('pc'))}</b>\n"
                 f"\n"
-                f"👤 {html.escape(tg_display)} | <b>{html.escape(full_name)}</b>"
+                f"👤 {html.escape(tg_display)} | <b>{html.escape(full_name)}</b>\n"
+                f"📞 {html.escape(phone)}"
             )
         else:  # belgrade
             text = (
@@ -211,7 +212,8 @@ async def import_lego(bot: Bot) -> int:
                 f"Office: <b>{html.escape(g('office'))}</b>\n"
                 f"Night shifts: <b>{html.escape(g('night_shifts'))}</b>\n"
                 f"\n"
-                f"👤 {html.escape(tg_display)} | <b>{html.escape(full_name)}</b>"
+                f"👤 {html.escape(tg_display)} | <b>{html.escape(full_name)}</b>\n"
+                f"📞 {html.escape(phone)}"
             )
 
         written = await append_lego_lead({
