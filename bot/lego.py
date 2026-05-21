@@ -1,9 +1,11 @@
+import asyncio
 import html
 import logging
 import re
 from datetime import datetime, timezone
 
 from telegram import Bot
+from telegram.error import RetryAfter
 
 import config
 from bot.sheets import append_lego_lead, read_range
@@ -233,7 +235,14 @@ async def import_lego(bot: Bot) -> int:
             continue
 
         rr_counter += 1
-        await bot.send_message(chat_id=config.GROUP_CHAT_ID, text=text, parse_mode="HTML")
+        for attempt in range(3):
+            try:
+                await bot.send_message(chat_id=config.GROUP_CHAT_ID, text=text, parse_mode="HTML")
+                break
+            except RetryAfter as e:
+                logger.warning("Flood control: waiting %ds (attempt %d/3)", e.retry_after, attempt + 1)
+                await asyncio.sleep(e.retry_after + 1)
+        await asyncio.sleep(2)
         processed += 1
         await set_lego_state({
             "last_processed_created_time": ct.isoformat(),
