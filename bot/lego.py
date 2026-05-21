@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 _SHEETS = [
     {
         "name": "YD forma 1",
-        "source": "YD Lego",
+        "source": "YD Lego 1",
         "type": "yd",
         "cols": {
             "created_time": "created_time",
