@@ -29,35 +29,53 @@ _SHEETS = [
         },
     },
     {
-        "name": "belgrade 1 lego",
-        "source": "FB Ru serbia lego",
-        "type": "belgrade",
+        "name": "YD Smurf",
+        "source": "YD Smurf",
+        "type": "yd",
         "cols": {
             "created_time": "created_time",
+            "full_name": "full_name",
+            "telegram": "ваш_телеграмм_юзернейи_или_номер_телефона:",
+            "phone": "phone_number",
             "platform": "platform",
             "age": "какой_ваш_возраст?",
-            "city": "в_каком_городе_вы_находитесь?",
-            "format": "предпочитаемый_формат_работы?_онлайн_или_офлайн_(офис_в_белграде)",
-            "night_shifts": "устраивает_ли_вас_график_с_ночными_сменами?",
-            "telegram": "ваш_тг_юзернейм_или_номер_тел.",
-            "full_name": "полное_имя",
-            "phone": "номер_телефона",
+            "experience": "был_ли_опыт_чаттером_?",
+            "english": "какое_у_вас_знание_английского_языка?",
+            "pc": "есть_ли_у_вас_пк\\ноутбук?_нужен_для_работы",
         },
     },
     {
-        "name": "belgrade 2 BW",
-        "source": "FB Eng serbia BW",
+        "name": "Smurf Belgrade ru",
+        "source": "Smurf BG ru",
         "type": "belgrade",
         "cols": {
             "created_time": "created_time",
             "platform": "platform",
             "age": "какой_ваш_возраст?",
             "city": "в_каком_городе_вы_находитесь?",
-            "format": "предпочитаемый_формат_работы?_онлайн_или_офлайн_(офис_в_белграде)",
+            "english": "уровень_владения_английским_языком:",
+            "office": "готовы_ли_вы_работать_в_офисе_в_белграде?",
             "night_shifts": "устраивает_ли_вас_график_с_ночными_сменами?",
             "telegram": "ваш_тг_юзернейм_или_номер_тел.",
             "full_name": "full_name",
             "phone": "phone_number",
+        },
+    },
+    {
+        "name": "YD Lego GEO",
+        "source": "YD Lego GEO",
+        "type": "yd_geo",
+        "cols": {
+            "created_time": "created_time",
+            "adset_name": "adset_name",
+            "full_name": "full_name",
+            "telegram": "ваш_телеграмм_юзернейи_или_номер_телефона:",
+            "phone": "phone_number",
+            "platform": "platform",
+            "age": "какой_ваш_возраст?",
+            "experience": "был_ли_опыт_чаттером_?",
+            "english": "какое_у_вас_знание_английского_языка?",
+            "pc": "есть_ли_у_вас_пк\\ноутбук?_нужен_для_работы",
         },
     },
 ]
@@ -105,7 +123,11 @@ async def import_lego(bot: Bot) -> int:
     all_new: list[tuple[datetime, list, list, dict]] = []
 
     for sheet in _SHEETS:
-        rows = await read_range(config.LEGO_FORM_ID, f"'{sheet['name']}'!A1:Z10000")
+        try:
+            rows = await read_range(config.LEGO_FORM_ID, f"'{sheet['name']}'!A1:Z10000")
+        except Exception as exc:
+            logger.error("Failed to read sheet '%s': %s — skipping", sheet["name"], exc)
+            continue
         logger.info("Sheet '%s': %d raw rows (incl header)", sheet["name"], len(rows))
         if not rows:
             continue
@@ -162,7 +184,9 @@ async def import_lego(bot: Bot) -> int:
 
         tg_display = _normalize_tg(telegram, full_name)
 
-        if sheet["type"] == "yd":
+        if sheet["type"] in ("yd", "yd_geo"):
+            if sheet["type"] == "yd_geo":
+                source = g("adset_name") or sheet["source"]
             text = (
                 f"{html.escape(source)}\n"
                 f"└ <b>{html.escape(hr_name)}</b> | {html.escape(tg_username)}\n"
@@ -175,7 +199,7 @@ async def import_lego(bot: Bot) -> int:
                 f"\n"
                 f"👤 {html.escape(tg_display)} | <b>{html.escape(full_name)}</b>"
             )
-        else:
+        else:  # belgrade
             text = (
                 f"{html.escape(source)}\n"
                 f"└ <b>{html.escape(hr_name)}</b> | {html.escape(tg_username)}\n"
@@ -183,7 +207,8 @@ async def import_lego(bot: Bot) -> int:
                 f"From: <b>{html.escape(platform)}</b>\n"
                 f"Age: <b>{html.escape(age)}</b>\n"
                 f"City: <b>{html.escape(g('city'))}</b>\n"
-                f"Format: <b>{html.escape(g('format'))}</b>\n"
+                f"EN LVL: <b>{html.escape(g('english'))}</b>\n"
+                f"Office: <b>{html.escape(g('office'))}</b>\n"
                 f"Night shifts: <b>{html.escape(g('night_shifts'))}</b>\n"
                 f"\n"
                 f"👤 {html.escape(tg_display)} | <b>{html.escape(full_name)}</b>"
