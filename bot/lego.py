@@ -99,8 +99,15 @@ def _normalize_tg(raw: str, fallback: str) -> str:
         return fallback
     if re.match(r'^[+\d][\d\s\-()]{6,}$', s):
         return s  # looks like a phone number, keep as-is
-    m = re.search(r'@?([\w]{3,})', s)
-    return f"@{m.group(1)}" if m else fallback
+    m = re.search(r't\.me/(@?[\w]{3,})', s)
+    if m:
+        username = m.group(1).lstrip('@')
+        return f"@{username}"
+    m = re.search(r'@([\w]{3,})', s)
+    if m:
+        return f"@{m.group(1)}"
+    m = re.search(r'[\w]{3,}', s)
+    return f"@{m.group(0)}" if m else fallback
 
 
 def _get(row: list, header: list, cols: dict, key: str) -> str:
