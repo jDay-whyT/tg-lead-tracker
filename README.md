@@ -73,12 +73,8 @@ Supported sheets (configured in `bot/lego.py`):
 
 | Sheet | Source label | Type |
 |---|---|---|
-| `YD forma 1` | `YD Lego 1` | YD |
-| `YD Smurf` | `YD Smurf` | YD |
-| `YD Lego GEO` | from `adset_name` column (e.g. `YD Lego GE`, `YD Lego MD`, `YD Lego RO`, `YD Lego PL`) | YD |
-| `Smurf Belgrade ru` | `Smurf BG ru` | Belgrade |
-
-Sheets `OFF`, `OFF2`, `OFF3`, `OFF4` exist in the spreadsheet but are intentionally ignored.
+| `YD Lego GEO` | from `adset_name` column (e.g. `YD LEGO KZ`, `YD LEGO PL`, `YD LEGO GE`, `YD LEGO MD`, `YD LEGO RO`) | YD |
+| `ru belgrade (2)` | `Smurf BG ru` | Belgrade |
 
 ### Lego import flow
 

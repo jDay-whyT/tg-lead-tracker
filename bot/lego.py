@@ -15,55 +15,6 @@ logger = logging.getLogger(__name__)
 
 _SHEETS = [
     {
-        "name": "YD forma 1",
-        "source": "YD Lego 1",
-        "type": "yd",
-        "cols": {
-            "created_time": "created_time",
-            "full_name": "полное_имя",
-            "telegram": "ваш_телеграмм_юзернейи_или_номер_телефона:",
-            "phone": "номер_телефона",
-            "platform": "platform",
-            "age": "какой_ваш_возраст?",
-            "experience": "был_ли_опыт_чаттером_?",
-            "english": "какое_у_вас_знание_английского_языка?",
-            "pc": "есть_ли_у_вас_пк\\ноутбук?_нужен_для_работы",
-        },
-    },
-    {
-        "name": "YD Smurf",
-        "source": "YD Smurf",
-        "type": "yd",
-        "cols": {
-            "created_time": "created_time",
-            "full_name": "full_name",
-            "telegram": "ваш_телеграмм_юзернейи_или_номер_телефона:",
-            "phone": "phone_number",
-            "platform": "platform",
-            "age": "какой_ваш_возраст?",
-            "experience": "был_ли_опыт_чаттером_?",
-            "english": "какое_у_вас_знание_английского_языка?",
-            "pc": "есть_ли_у_вас_пк\\ноутбук?_нужен_для_работы",
-        },
-    },
-    {
-        "name": "Smurf Belgrade ru",
-        "source": "Smurf BG ru",
-        "type": "belgrade",
-        "cols": {
-            "created_time": "created_time",
-            "platform": "platform",
-            "age": "какой_ваш_возраст?",
-            "city": "в_каком_городе_вы_находитесь?",
-            "english": "уровень_владения_английским_языком:",
-            "office": "готовы_ли_вы_работать_в_офисе_в_белграде?",
-            "night_shifts": "устраивает_ли_вас_график_с_ночными_сменами?",
-            "telegram": "ваш_тг_юзернейм_или_номер_тел.",
-            "full_name": "full_name",
-            "phone": "phone_number",
-        },
-    },
-    {
         "name": "YD Lego GEO",
         "source": "YD Lego GEO",
         "type": "yd_geo",
@@ -80,6 +31,22 @@ _SHEETS = [
             "pc": "есть_ли_у_вас_пк\\ноутбук?_нужен_для_работы",
         },
     },
+    {
+        "name": "ru belgrade (2)",
+        "source": "Smurf BG ru",
+        "type": "belgrade",
+        "cols": {
+            "created_time": "created_time",
+            "platform": "platform",
+            "age": "какой_ваш_возраст?",
+            "city": "в_каком_городе_вы_находитесь?",
+            "office": "готовы_ли_вы_работать_в_нашем_офисе_в_белграде?",
+            "night_shifts": "устраивает_ли_вас_график_с_ночными_сменами?",
+            "telegram": "ваши_контактные_данные_(telegram,_whatsapp,_номер_телефона)",
+            "full_name": "полное_имя",
+            "phone": "номер_телефона",
+        },
+    },
 ]
 
 
@@ -93,12 +60,17 @@ def _as_utc(dt: datetime) -> datetime:
     return dt.astimezone(timezone.utc)
 
 
+def _clean_phone(raw: str) -> str:
+    # Meta lead exports prefix phone numbers with "p:" — strip it
+    return re.sub(r'^p:\s*', '', raw.strip())
+
+
 def _normalize_tg(raw: str, fallback: str) -> str:
     s = raw.strip()
     if not s:
         return fallback
-    if re.match(r'^[+\d][\d\s\-()]{6,}$', s):
-        return s  # looks like a phone number, keep as-is
+    if re.match(r'^[+\d][\d\s\-()/.]{6,}$', s):
+        return s  # looks like a phone number (incl. separators like / .), keep as-is
     m = re.search(r't\.me/(@?[\w]{3,})', s)
     if m:
         username = m.group(1).lstrip('@')
@@ -187,7 +159,7 @@ async def import_lego(bot: Bot) -> int:
 
         full_name = g("full_name")
         telegram = g("telegram")
-        phone = g("phone")
+        phone = _clean_phone(g("phone"))
         platform = g("platform")
         age = g("age")
 
@@ -217,7 +189,6 @@ async def import_lego(bot: Bot) -> int:
                 f"From: <b>{html.escape(platform)}</b>\n"
                 f"Age: <b>{html.escape(age)}</b>\n"
                 f"City: <b>{html.escape(g('city'))}</b>\n"
-                f"EN LVL: <b>{html.escape(g('english'))}</b>\n"
                 f"Office: <b>{html.escape(g('office'))}</b>\n"
                 f"Night shifts: <b>{html.escape(g('night_shifts'))}</b>\n"
                 f"\n"
