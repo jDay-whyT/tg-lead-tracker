@@ -32,11 +32,12 @@ _SHEETS = [
         },
     },
     {
-        "name": "ru belgrade (2)",
-        "source": "Smurf BG ru",
+        "name": "Lego OFFICE RU",
+        "source": "lego-office.ru",
         "type": "belgrade",
         "cols": {
             "created_time": "created_time",
+            "campaign_name": "campaign_name",
             "platform": "platform",
             "age": "какой_ваш_возраст?",
             "city": "в_каком_городе_вы_находитесь?",
@@ -182,6 +183,7 @@ async def import_lego(bot: Bot) -> int:
                 f"📞 {html.escape(phone)}"
             )
         else:  # belgrade
+            source = g("campaign_name") or source
             text = (
                 f"{html.escape(source)}\n"
                 f"└ <b>{html.escape(hr_name)}</b> | {html.escape(tg_username)}\n"
